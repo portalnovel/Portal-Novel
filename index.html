@@ -1,0 +1,2741 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>PORTAL NOVEL</title>
+<meta name="theme-color" content="#111111">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Portal Novel">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="google" content="notranslate">
+<!-- Versão de teste: impede que o Google indexe. Apague a linha abaixo quando for abrir o app ao público. -->
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23111111'/%3E%3Ctext x='32' y='46' font-size='38' font-family='Arial' font-weight='bold' text-anchor='middle' fill='%23FF5E62'%3EP%3C/text%3E%3C/svg%3E">
+
+<style>
+:root {
+    --bg-color: #f5f5f7; --card-bg: #ffffff; --text-primary: #1a1a1a; --text-secondary: #666666;
+    --header-bg: #111111;
+    --accent-gradient: linear-gradient(135deg, #FF9966 0%, #FF5E62 100%);
+    --accent-color: #FF5E62; --border-radius: 12px;
+    --borda: #e0e0e0; --linha: #eeeeee; --campo-bg: #ffffff; --chip-bg: #ffffff; --suave-bg: #f0f0f2; --nav-cor: #999999;
+}
+body.escuro {
+    --bg-color: #121214; --card-bg: #1d1d21; --text-primary: #f1f1f3; --text-secondary: #a5a5ad;
+    --borda: #34343b; --linha: #2a2a30; --campo-bg: #141417; --chip-bg: #1d1d21; --suave-bg: #2a2a30; --nav-cor: #8d8d96;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+body { background: var(--bg-color); color: var(--text-primary); max-width: 600px; margin: 0 auto; border-left: 1px solid var(--linha); border-right: 1px solid var(--linha); min-height: 100vh; }
+button { cursor: pointer; }
+a { text-decoration: none; }
+main { padding: 16px 16px 90px; }
+body.escrita main { padding-bottom: 30px; }
+.tela { display: none; }
+.tela.ativa { display: block; animation: fadeIn 0.3s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+h2 { font-size: 20px; margin: 18px 0 12px; }
+
+/* ===== Cabeçalho ===== */
+header { background: var(--header-bg); padding: 14px 16px; padding-top: calc(14px + env(safe-area-inset-top, 0px)); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+.header-left { display: flex; align-items: center; gap: 14px; }
+.header-right { display: flex; gap: 12px; align-items: center; }
+.menu-icon, .search-icon { color: #fff; cursor: pointer; display: flex; align-items: center; }
+.logo { color: #fff; font-weight: 800; font-size: 20px; letter-spacing: 0.5px; }
+.btn-entrar { background: var(--accent-gradient); color: #fff; border: none; padding: 8px 18px; border-radius: 20px; font-weight: 700; font-size: 13px; box-shadow: 0 4px 10px rgba(255, 94, 98, 0.3); }
+.avatar { width: 36px; height: 36px; border-radius: 50%; border: none; background-color: var(--accent-color); background-image: var(--accent-gradient); background-size: cover; background-position: center; color: #fff; font-weight: bold; font-size: 16px; display: flex; align-items: center; justify-content: center; }
+
+/* ===== Menu lateral ===== */
+#menu-toggle { display: none; }
+.drawer { position: fixed; top: 0; left: -280px; width: 280px; height: 100vh; background: var(--card-bg); z-index: 200; transition: left 0.3s ease; box-shadow: 2px 0 10px rgba(0,0,0,0.1); overflow-y: auto; }
+#menu-toggle:checked ~ .drawer { left: 0; }
+.drawer-header { padding: 20px; padding-top: calc(20px + env(safe-area-inset-top, 0px)); background: var(--header-bg); color: #fff; display: flex; justify-content: space-between; align-items: center; }
+.drawer-header h3 { font-size: 18px; }
+.close-btn { color: #fff; font-size: 24px; cursor: pointer; }
+.drawer-menu { list-style: none; padding: 10px 0; }
+.drawer-menu li a { display: block; padding: 14px 20px; color: var(--text-primary); font-size: 15px; font-weight: 500; border-bottom: 1px solid var(--linha); }
+.drawer-menu li a.active { color: var(--accent-color); font-weight: 700; border-left: 4px solid var(--accent-color); }
+.overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 150; display: none; }
+#menu-toggle:checked ~ .overlay { display: block; }
+
+/* ===== Vitrine ===== */
+.section-title { font-size: 18px; font-weight: 800; margin: 20px 0 12px; display: flex; align-items: center; gap: 8px; }
+.section-title:first-child { margin-top: 0; }
+.section-title::before { content: ''; display: block; width: 4px; height: 18px; background: var(--accent-gradient); border-radius: 2px; }
+.genre-scroll { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 16px; scrollbar-width: none; }
+.genre-scroll::-webkit-scrollbar { display: none; }
+.chip { background: var(--chip-bg); border: 1px solid var(--borda); padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; color: var(--text-secondary); white-space: nowrap; }
+.chip.ativo { background: var(--accent-gradient); color: #fff; border-color: transparent; }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; padding: 4px 0 10px; }
+.books-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px; align-items: start; }
+.book-card { display: block; background: var(--card-bg); border-radius: var(--border-radius); overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.06); transition: transform 0.2s; color: inherit; }
+.book-card:active { transform: scale(0.97); }
+.book-card .book-cover { border-radius: 0; }
+.book-cover { width: 100%; aspect-ratio: 3 / 4; }
+.book-info { padding: 8px; }
+.book-title { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px; }
+.book-genre { font-size: 11px; color: var(--accent-color); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bestsellers-list { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+.bestseller-item { display: flex; gap: 10px; background: var(--card-bg); padding: 10px; border-radius: var(--border-radius); box-shadow: 0 2px 8px rgba(0,0,0,0.04); color: inherit; min-width: 0; }
+.rank-number { font-size: 24px; font-weight: 900; color: var(--borda); line-height: 1; min-width: 24px; font-style: italic; }
+.rank-number.top { color: var(--accent-color); }
+.bs-info { flex: 1; min-width: 0; }
+.bs-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bs-desc { font-size: 11px; color: var(--text-secondary); line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.empty-state { text-align: center; padding: 40px 20px; color: var(--text-secondary); }
+.empty-state h3 { margin-bottom: 8px; color: var(--text-primary); }
+.vazio { color: var(--text-secondary); padding: 20px 0; }
+.busca { width: 100%; padding: 12px 14px; border: 1px solid var(--borda); border-radius: 10px; font-size: 16px; background: var(--campo-bg); color: var(--text-primary); }
+.busca:focus { outline: none; border-color: var(--accent-color); }
+.capa { border-radius: 10px; color: #fff; font-weight: 700; font-size: 13px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 8px; background-size: cover; background-position: center; overflow: hidden; word-break: break-word; text-shadow: 0 1px 3px rgba(0,0,0,0.35); }
+
+/* ===== Menu de baixo ===== */
+.bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 600px; background: var(--card-bg); border-top: 1px solid var(--linha); display: flex; justify-content: space-around; padding: 8px 0; padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)); z-index: 100; box-shadow: 0 -2px 10px rgba(0,0,0,0.05); }
+.nav-item { display: flex; flex-direction: column; align-items: center; color: var(--nav-cor); font-size: 10px; gap: 3px; flex: 1; }
+.nav-item svg { width: 24px; height: 24px; }
+.nav-item.active { color: var(--accent-color); font-weight: 700; }
+body.escrita .bottom-nav { display: none; }
+
+/* ===== Blocos e botões ===== */
+.bloco { background: var(--card-bg); border: 1px solid var(--linha); border-radius: var(--border-radius); box-shadow: 0 2px 8px rgba(0,0,0,0.04); padding: 16px; margin-bottom: 12px; }
+.bloco h3 { color: var(--text-primary); font-size: 16px; font-weight: 800; margin-bottom: 4px; }
+.ajuda { font-size: 14px; color: var(--text-secondary); margin-bottom: 10px; }
+.btn { border: none; background: var(--accent-gradient); color: #fff; padding: 12px 24px; border-radius: 25px; font-weight: 700; font-size: 15px; display: inline-block; margin-top: 12px; text-align: center; box-shadow: 0 4px 12px rgba(255, 94, 98, 0.3); }
+.btn.claro { background: var(--suave-bg); color: var(--accent-color); box-shadow: none; }
+.btn.perigo { background: #FBE9E7; color: #B3261E; box-shadow: none; }
+body.escuro .btn.perigo { background: #3A2323; color: #F2B8B5; }
+.btn.mini { padding: 8px 16px; font-size: 13px; margin-top: 0; }
+.btn:disabled { opacity: 0.6; }
+.acoes { display: flex; gap: 12px; flex-wrap: wrap; }
+.acoes .btn { flex: 1; min-width: 140px; }
+.voltar { display: inline-block; color: var(--text-secondary); font-weight: 600; margin: 4px 0 10px; background: none; border: none; font-size: 14px; }
+.aviso { margin-top: 14px; font-weight: bold; min-height: 24px; }
+.aviso.ok { color: #2E7D4F; }
+.aviso.erro { color: #B3261E; }
+body.escuro .aviso.ok { color: #6FCF97; }
+body.escuro .aviso.erro { color: #F2B8B5; }
+.rascunho { display: flex; gap: 14px; align-items: center; }
+.rascunho .capa { width: 70px; height: 93px; flex-shrink: 0; font-size: 11px; }
+.selo { display: inline-block; font-size: 12px; font-weight: bold; padding: 3px 9px; border-radius: 12px; background: var(--suave-bg); color: var(--accent-color); margin-left: 6px; vertical-align: middle; }
+.selo.ok { background: #E3F4EA; color: #2E7D4F; }
+body.escuro .selo.ok { background: #1F3A2A; color: #8FD6A9; }
+.parte-titulo { font-size: 17px; font-weight: 800; margin: 18px 0 8px; display: flex; align-items: center; gap: 8px; }
+.parte-titulo::before { content: ''; display: block; width: 4px; height: 16px; background: var(--accent-gradient); border-radius: 2px; }
+
+/* ===== Formulários ===== */
+.bloco label.rot { display: block; font-size: 13px; font-weight: 600; margin: 14px 0 6px; color: var(--text-secondary); }
+.bloco input[type="text"], .bloco input[type="email"], .bloco input[type="password"], .bloco textarea, .bloco select { width: 100%; padding: 12px; border: 1px solid var(--borda); border-radius: 8px; font-size: 16px; font-family: inherit; background: var(--campo-bg); color: var(--text-primary); }
+.bloco input:focus, .bloco textarea:focus, .bloco select:focus { outline: none; border-color: var(--accent-color); }
+.opcoes { display: flex; flex-wrap: wrap; gap: 8px; }
+.opcao { display: flex; align-items: center; gap: 8px; padding: 8px 14px; background: var(--chip-bg); border: 1px solid var(--borda); border-radius: 16px; font-size: 13px; font-weight: 600; color: var(--text-secondary); cursor: pointer; }
+.opcao:has(input:checked) { border-color: var(--accent-color); color: var(--accent-color); }
+.opcao input { accent-color: var(--accent-color); width: 18px; height: 18px; }
+.capa-area { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+.previa { width: 140px; height: 187px; object-fit: cover; border-radius: 10px; display: none; }
+.previa.visivel { display: block; }
+
+/* ===== Capítulos ===== */
+.historia-topo { display: flex; gap: 14px; align-items: center; margin-bottom: 16px; }
+.historia-topo img { width: 60px; height: 80px; object-fit: cover; border-radius: 8px; display: none; }
+.historia-topo h1 { font-size: 22px; }
+.historia-topo a { color: var(--accent-color); font-weight: bold; font-size: 14px; }
+.capitulo { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.capitulo .botoes { display: flex; gap: 8px; flex-wrap: wrap; }
+#capTexto { min-height: 50vh; font-family: Georgia, serif; font-size: 17px; line-height: 1.7; }
+.contador { color: var(--text-secondary); font-size: 14px; margin-top: 8px; }
+
+/* ===== Livro e perfil ===== */
+.livro-capa { width: 180px; height: 240px; margin: 6px auto 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.2); font-size: 16px; }
+.livro h1 { font-size: 24px; text-align: center; }
+.livro .autor { text-align: center; color: var(--text-secondary); margin: 4px 0 12px; }
+.livro .chips { justify-content: center; }
+.livro p.sinopse { line-height: 1.6; margin-top: 10px; }
+.livro .bloco { text-align: left; }
+.profile-header { text-align: center; padding: 10px 0; }
+.profile-header .avatar { width: 80px; height: 80px; font-size: 32px; margin: 0 auto 12px; }
+.profile-header h2 { margin: 0; }
+.profile-stats { display: flex; justify-content: space-around; margin: 16px 0; padding: 16px 0; border-top: 1px solid var(--linha); border-bottom: 1px solid var(--linha); }
+.stat-item { text-align: center; }
+.stat-number { font-size: 22px; font-weight: 800; color: var(--text-primary); display: block; }
+.stat-label { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+.lista-menu { list-style: none; background: var(--card-bg); border: 1px solid var(--linha); border-radius: var(--border-radius); box-shadow: 0 2px 8px rgba(0,0,0,0.04); overflow: hidden; }
+.lista-menu li { border-bottom: 1px solid var(--linha); }
+.lista-menu li:last-child { border-bottom: none; }
+.lista-menu li a { display: flex; justify-content: space-between; width: 100%; padding: 16px; color: var(--text-primary); }
+.lista-menu small { color: var(--text-secondary); }
+
+/* ===== Entrar e textos legais ===== */
+.entrar-box { text-align: center; padding: 20px 0 14px; }
+.entrar-logo { font-size: 32px; font-weight: 800; margin-bottom: 6px; background: var(--accent-gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.entrar-sub { color: var(--text-secondary); }
+.abas { display: flex; gap: 8px; margin-bottom: 6px; }
+.abas button { flex: 1; border: none; background: var(--suave-bg); color: var(--text-secondary); padding: 12px; border-radius: 25px; font-weight: bold; font-size: 15px; }
+.abas button.ativo { background: var(--accent-gradient); color: #fff; }
+.aceite { display: none; gap: 10px; align-items: flex-start; margin: 16px 0 4px; font-size: 14px; line-height: 1.4; }
+.aceite input { width: 20px; height: 20px; accent-color: var(--accent-color); flex-shrink: 0; margin-top: 1px; }
+.aceite a { color: var(--accent-color); font-weight: bold; text-decoration: underline; }
+.legal h1 { font-size: 24px; margin: 6px 0 4px; }
+.legal h2 { margin: 22px 0 8px; font-size: 18px; }
+.legal p { line-height: 1.6; margin-bottom: 10px; color: var(--text-primary); opacity: 0.85; }
+
+/* ===== Declaração do autor ===== */
+.decl { display: flex; gap: 10px; align-items: flex-start; margin: 14px 0; font-size: 15px; line-height: 1.4; cursor: pointer; }
+.decl input { width: 20px; height: 20px; accent-color: var(--accent-color); flex-shrink: 0; margin-top: 1px; }
+.link { color: var(--accent-color); font-weight: bold; text-decoration: underline; }
+
+/* ===== Curtir, comentar, denunciar ===== */
+.acoes-livro { display: flex; gap: 10px; justify-content: center; margin: 16px 0 6px; flex-wrap: wrap; }
+.comentario .botoes { display: flex; gap: 8px; margin-top: 8px; }
+.comentario p { white-space: pre-wrap; margin-top: 6px; line-height: 1.5; }
+
+/* ===== Leitura de capítulos ===== */
+.leitor h1 { font-size: 26px; margin: 4px 0 18px; }
+.leitura-texto p { font-family: Georgia, serif; font-size: 18px; line-height: 1.8; margin-bottom: 16px; color: var(--text-primary); }
+.leitura-texto.tam-p p { font-size: 16px; }
+.leitura-texto.tam-g p { font-size: 21px; }
+.leitura-texto.fonte-simples p { font-family: Arial, Helvetica, sans-serif; }
+.amostra { border: 1px solid var(--borda); border-radius: 10px; padding: 14px; margin-top: 14px; }
+.amostra p { margin-bottom: 0; }
+.contador-leitura { color: var(--text-secondary); font-size: 14px; margin: 18px 0 8px; text-align: center; }
+.linha-cap { display: flex; justify-content: space-between; align-items: center; gap: 10px; width: 100%; text-align: left; font-size: 15px; color: inherit; }
+.linha-cap .ajuda { margin: 0; white-space: nowrap; }
+
+/* ===== Espaços de anúncio (banner e vinheta) ===== */
+.banner { margin: 24px 0 6px; }
+.banner-rotulo { font-size: 12px; color: var(--text-secondary); text-align: center; margin-bottom: 4px; }
+.banner-caixa { min-height: 100px; border: 1px dashed var(--borda); border-radius: 10px; background: var(--suave-bg); color: var(--text-secondary); display: flex; align-items: center; justify-content: center; font-size: 14px; }
+.leitor .acoes { margin-top: 24px; }
+.vinheta { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.75); z-index: 300; align-items: center; justify-content: center; padding: 20px; }
+.vinheta-caixa { background: var(--card-bg); border-radius: 14px; padding: 18px; width: 100%; max-width: 420px; position: relative; }
+.vinheta-caixa .banner-rotulo { margin-top: 18px; }
+.vinheta-caixa .banner-caixa { min-height: 260px; margin-bottom: 14px; }
+.vinheta-fechar { position: absolute; top: 6px; right: 10px; border: none; background: none; font-size: 24px; color: var(--text-secondary); padding: 6px; }
+
+/* ===== Perfil e preferências ===== */
+.avatar-grande { width: 80px; height: 80px; font-size: 32px; flex-shrink: 0; }
+.foto-area { display: flex; gap: 16px; align-items: center; margin-bottom: 6px; }
+.foto-area .btn { margin-top: 0; margin-right: 6px; }
+label.btn { cursor: pointer; }
+</style>
+
+<!-- Biblioteca do Supabase (login e banco de dados) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>window.supabase || document.write('<script src="https://unpkg.com/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"><\/script>');</script>
+</head>
+
+<body>
+
+<script>
+function mostrarErroNaTela(texto) {
+    var caixa = document.createElement("div");
+    caixa.style.cssText = "position:fixed;top:70px;left:8px;right:8px;z-index:500;background:#B3261E;color:#fff;padding:12px;border-radius:8px;font-size:14px";
+    caixa.textContent = texto;
+    caixa.onclick = function () { caixa.remove(); };
+    document.body.appendChild(caixa);
+}
+window.onerror = function (mensagem, arquivo, linha) {
+    mostrarErroNaTela("Erro: " + mensagem + " (linha " + linha + ")");
+};
+window.addEventListener("unhandledrejection", function (e) {
+    mostrarErroNaTela("Erro: " + ((e.reason && e.reason.message) || e.reason));
+});
+</script>
+
+<!-- MENU LATERAL -->
+<input type="checkbox" id="menu-toggle">
+<label for="menu-toggle" class="overlay"></label>
+<div class="drawer">
+    <div class="drawer-header">
+        <h3>PORTAL NOVEL</h3>
+        <label for="menu-toggle" class="close-btn">✕</label>
+    </div>
+    <ul class="drawer-menu">
+        <li><a href="#inicio" data-tela="inicio" onclick="fecharGaveta()">🏠 Início</a></li>
+        <li><a href="#buscar" data-tela="buscar" onclick="fecharGaveta()">🔍 Buscar</a></li>
+        <li><a href="#biblioteca" data-tela="biblioteca" onclick="fecharGaveta()">📚 Biblioteca</a></li>
+        <li><a href="#escrever" data-tela="escrever" onclick="fecharGaveta()">✏️ Escrever</a></li>
+        <li><a href="#avisos" data-tela="avisos" onclick="fecharGaveta()">🔔 Avisos</a></li>
+        <li><a href="#perfil" data-tela="perfil" onclick="fecharGaveta()">👤 Perfil</a></li>
+        <li><a href="#configuracoes" data-tela="configuracoes" onclick="fecharGaveta()">⚙️ Configurações</a></li>
+        <li><a href="#entrar" id="drawerConta" onclick="fecharGaveta()">🔑 Entrar</a></li>
+    </ul>
+</div>
+
+<!-- CABEÇALHO -->
+<header>
+    <div class="header-left">
+        <label for="menu-toggle" class="menu-icon" aria-label="Menu"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg></label>
+        <span class="logo">PORTAL NOVEL</span>
+    </div>
+    <div class="header-right">
+        <a href="#buscar" class="search-icon" aria-label="Buscar"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></a>
+        <a href="#entrar" class="btn-entrar" id="btnEntrarTopo">ENTRAR</a>
+        <button class="avatar" id="btnAvatarTopo" style="display:none" onclick="location.hash='perfil'" aria-label="Perfil">👤</button>
+    </div>
+</header>
+
+<main>
+
+    <!-- INÍCIO -->
+    <section class="tela" id="tela-inicio">
+        <div class="genre-scroll" id="chipsInicio"></div>
+        <div id="prateleiras"></div>
+    </section>
+
+    <!-- BUSCAR (gêneros e busca na mesma tela) -->
+    <section class="tela" id="tela-buscar">
+        <input class="busca" id="campoBusca" type="search" placeholder="Título, autor ou gênero...">
+        <div class="genre-scroll" id="chips" style="margin-top:12px"></div>
+        <div class="books-grid" id="resultado"></div>
+        <p class="vazio" id="vazioBusca">Nenhuma história encontrada.</p>
+    </section>
+
+    <!-- BIBLIOTECA -->
+    <section class="tela" id="tela-biblioteca">
+        <h2>Minhas leituras</h2>
+        <p class="vazio">Você ainda não salvou nenhuma leitura.</p>
+        <a class="btn claro" href="#buscar">Encontrar histórias</a>
+        <h2>Minhas histórias</h2>
+        <div id="bibliotecaRascunho"></div>
+    </section>
+
+    <!-- ESCREVER -->
+    <section class="tela" id="tela-escrever">
+        <h2>Escrever</h2>
+        <div class="bloco" id="blocoEscreverLogin" style="display:none">
+            <p>Para escrever e publicar suas histórias, entre na sua conta.</p>
+            <a class="btn" href="#entrar">Entrar ou criar conta</a>
+        </div>
+        <div class="bloco" id="blocoNova">
+            <p>Comece uma nova história e publique capítulo por capítulo.</p>
+            <a class="btn" href="#nova">Nova história</a>
+        </div>
+        <div id="escreverRascunho"></div>
+    </section>
+
+    <!-- AVISOS -->
+    <section class="tela" id="tela-avisos">
+        <h2>Avisos</h2>
+        <p class="vazio">Nenhum aviso por enquanto.</p>
+    </section>
+
+    <!-- PERFIL -->
+    <section class="tela" id="tela-perfil">
+        <div class="bloco">
+            <div class="profile-header">
+                <button class="avatar" aria-label="Foto do perfil" onclick="location.hash='editarperfil'">👤</button>
+                <h2 id="perfilNome">Seu perfil</h2>
+                <p class="ajuda" id="perfilUsuario" style="margin:2px 0 0"></p>
+                <p id="perfilSobre" style="margin:10px 0 0;color:var(--text-secondary);line-height:1.5"></p>
+            </div>
+            <div class="profile-stats">
+                <div class="stat-item"><strong class="stat-number" id="numObras">0</strong><span class="stat-label">Obras</span></div>
+                <div class="stat-item"><strong class="stat-number">0</strong><span class="stat-label">Lista de leitura</span></div>
+                <div class="stat-item"><strong class="stat-number">0</strong><span class="stat-label">Seguidores</span></div>
+            </div>
+            <div style="text-align:center">
+                <a class="btn" style="width:100%" href="#editarperfil">Editar perfil</a>
+                <a class="btn claro" id="btnConta" style="width:100%" href="#entrar">Entrar ou criar conta</a>
+            </div>
+        </div>
+
+        <h2>Minhas histórias</h2>
+        <div id="perfilRascunho"></div>
+        <a class="btn claro" style="width:100%" href="#configuracoes">Configurações ›</a>
+    </section>
+
+    <!-- CONFIGURAÇÕES -->
+    <section class="tela" id="tela-configuracoes">
+        <a class="voltar" href="#perfil">← Voltar</a>
+        <h2 style="margin-top:4px">Configurações</h2>
+        <ul class="lista-menu">
+            <li><a href="#editarperfil">Perfil e conta <small>›</small></a></li>
+            <li><a href="#notificacoes">Notificações <small>›</small></a></li>
+            <li><a href="#preferencias">Aparência e leitura <small>›</small></a></li>
+            <li><a href="#ajuda">Ajuda e suporte <small>›</small></a></li>
+            <li><a href="#termos">Termos de Uso <small>›</small></a></li>
+            <li><a href="#privacidade">Política de Privacidade <small>›</small></a></li>
+        </ul>
+        <div class="bloco" id="blocoInstalar" style="display:none;margin-top:16px">
+            <h3>Instalar o app</h3>
+            <p class="ajuda" id="textoInstalar">Adicione o Portal Novel à tela inicial do seu celular e abra como um aplicativo.</p>
+            <button type="button" class="btn" id="btnInstalar" style="width:100%" onclick="instalarApp()">Instalar o Portal Novel</button>
+        </div>
+        <p class="ajuda" style="text-align:center;margin-top:16px">Portal Novel · versão 10.11-c</p>
+    </section>
+
+    <!-- LIVRO (serve para qualquer história) -->
+    <section class="tela" id="tela-livro">
+        <div class="livro" id="livro"></div>
+    </section>
+
+    <!-- NOVA HISTÓRIA -->
+    <section class="tela" id="tela-nova">
+        <a class="voltar" href="#escrever">← Voltar</a>
+        <h2 style="margin-top:4px">Informações da história</h2>
+
+        <div class="bloco">
+            <label class="rot" for="titulo">Título da história</label>
+            <input type="text" id="titulo" maxlength="120" placeholder="Digite o título da sua história">
+            <label class="rot" for="sinopse">Sinopse</label>
+            <textarea id="sinopse" rows="6" placeholder="Conte aos leitores sobre sua história..."></textarea>
+        </div>
+
+        <div class="bloco">
+            <h3>Capa da história</h3>
+            <p class="ajuda">Escolha uma imagem para representar sua história.</p>
+            <div class="capa-area">
+                <img id="previaCapa" class="previa" alt="Prévia da capa">
+                <input type="file" id="capa" accept="image/*">
+            </div>
+        </div>
+
+        <div class="bloco">
+            <h3>Gêneros</h3>
+            <p class="ajuda">Selecione um ou mais gêneros.</p>
+            <div class="opcoes" id="listaGeneros"></div>
+        </div>
+
+        <div class="bloco">
+            <h3>Classificação indicativa</h3>
+            <select id="idade">
+                <option value="">Selecione</option>
+                <option value="livre">Livre</option>
+                <option value="10">10 anos</option>
+                <option value="12">12 anos</option>
+                <option value="14">14 anos</option>
+                <option value="16">16 anos</option>
+                <option value="18">18 anos</option>
+            </select>
+        </div>
+
+        <div class="bloco">
+            <h3>Status da história</h3>
+            <div class="opcoes">
+                <label class="opcao"><input type="radio" name="status" value="andamento"> Em andamento</label>
+                <label class="opcao"><input type="radio" name="status" value="completa"> Completa</label>
+            </div>
+        </div>
+
+        <div class="acoes">
+            <button type="button" class="btn claro" onclick="salvarForm(false)">Salvar rascunho</button>
+            <button type="button" class="btn" onclick="salvarForm(true)">Salvar e continuar</button>
+        </div>
+        <p id="avisoForm" class="aviso" aria-live="polite"></p>
+    </section>
+
+    <!-- CAPÍTULOS (lista) -->
+    <section class="tela" id="tela-capitulos">
+        <a class="voltar" href="#escrever">← Voltar</a>
+
+        <div id="semHistoria" style="display:none">
+            <h2>Capítulos</h2>
+            <p class="vazio" id="semHistoriaTexto"></p>
+            <a class="btn" id="semHistoriaBtn" href="#nova">Criar história</a>
+        </div>
+
+        <div id="vistaLista">
+            <div class="historia-topo">
+                <img id="topoCapa" alt="">
+                <div>
+                    <h1 id="topoTitulo"></h1>
+                    <a href="#nova">Editar informações da história</a>
+                </div>
+            </div>
+            <p class="ajuda" id="statusHistoria" style="margin-bottom:4px"></p>
+            <p class="ajuda" id="totalLeituras" style="margin-bottom:4px"></p>
+            <p class="ajuda" id="statusAceite"></p>
+            <div id="lista"></div>
+            <p id="avisoLista" class="aviso" aria-live="polite"></p>
+            <div class="acoes">
+                <button type="button" class="btn" onclick="novoCapitulo()">+ Novo capítulo</button>
+                <button type="button" class="btn claro" onclick="location.hash='publicar'">Publicar história</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- EDITOR DE CAPÍTULO -->
+    <section class="tela" id="tela-editor">
+        <button type="button" class="voltar" onclick="voltarLista()">← Voltar à lista</button>
+
+        <div class="bloco">
+            <label class="rot" for="capParte">Parte</label>
+            <select id="capParte"></select>
+            <label class="rot" for="capTitulo">Título do capítulo</label>
+            <input type="text" id="capTitulo" maxlength="120" placeholder="Ex.: A chegada">
+            <label class="rot" for="capTexto">Texto</label>
+            <textarea id="capTexto" placeholder="Comece a escrever..."></textarea>
+            <p class="contador"><span id="contaPalavras">0</span> palavras</p>
+            <p class="ajuda" style="margin:8px 0 0">O capítulo fica como rascunho. Para os leitores verem, toque em Publicar na lista de capítulos.</p>
+        </div>
+
+        <div class="acoes">
+            <button type="button" class="btn" onclick="enfileirarSalvar(true)">Salvar capítulo</button>
+            <button type="button" class="btn claro" onclick="voltarLista()">Voltar à lista</button>
+        </div>
+        <p id="avisoCap" class="aviso" aria-live="polite"></p>
+    </section>
+
+
+    <!-- ENTRAR / CRIAR CONTA -->
+    <section class="tela" id="tela-entrar">
+        <button type="button" class="voltar" onclick="voltarTela()">← Voltar</button>
+
+        <div class="entrar-box">
+            <div class="entrar-logo">PORTAL NOVEL</div>
+            <p class="entrar-sub">Histórias para ler, escrever e compartilhar.</p>
+        </div>
+
+        <div class="bloco">
+            <div class="abas">
+                <button type="button" id="abaEntrar" class="ativo" onclick="trocarAba('entrar')">Entrar</button>
+                <button type="button" id="abaCriar" onclick="trocarAba('criar')">Criar conta</button>
+            </div>
+
+            <div id="campoNome" style="display:none">
+                <label class="rot" for="nomeUsuario">Nome de usuário</label>
+                <input type="text" id="nomeUsuario" placeholder="Como você quer ser chamado" autocapitalize="none">
+            </div>
+
+            <label class="rot" for="email">E-mail</label>
+            <input type="email" id="email" placeholder="seu@email.com">
+
+            <label class="rot" for="senha">Senha</label>
+            <input type="password" id="senha" placeholder="Pelo menos 6 caracteres">
+
+            <label class="aceite" id="blocoAceite">
+                <input type="checkbox" id="aceito">
+                <span>Li e aceito os <a href="#termos">Termos de Uso</a> e a <a href="#privacidade">Política de Privacidade</a>.</span>
+            </label>
+
+            <button type="button" class="btn" id="btnLogin" style="width:100%" onclick="enviarLogin()">Entrar</button>
+            <p id="avisoLogin" class="aviso" aria-live="polite"></p>
+        </div>
+    </section>
+
+    <!-- TERMOS DE USO -->
+    <section class="tela legal" id="tela-termos">
+        <button type="button" class="voltar" onclick="voltarTela()">← Voltar</button>
+        <div id="textoTermos"></div>
+    </section>
+
+    <!-- POLÍTICA DE PRIVACIDADE -->
+    <section class="tela legal" id="tela-privacidade">
+        <button type="button" class="voltar" onclick="voltarTela()">← Voltar</button>
+        <div id="textoPrivacidade"></div>
+    </section>
+
+
+    <!-- PUBLICAR (declaração do autor) -->
+    <section class="tela" id="tela-publicar">
+        <a class="voltar" href="#capitulos">← Voltar</a>
+        <h2 style="margin-top:4px">Publicar história</h2>
+
+        <div class="bloco">
+            <strong id="pubTitulo"></strong>
+            <p class="ajuda" id="pubResumo" style="margin:6px 0 0"></p>
+        </div>
+
+        <div class="bloco">
+            <h3>Declaração do autor</h3>
+            <p class="ajuda">Para publicar, confirme cada item. Leia também os <a class="link" href="#termos">Termos de Uso</a>.</p>
+            <div id="listaDecl"></div>
+            <button type="button" class="btn" style="width:100%" onclick="confirmarPublicar()">Confirmar e publicar</button>
+            <button type="button" class="btn perigo" id="btnDespublicar" style="width:100%;display:none" onclick="despublicarHistoria()">Despublicar história</button>
+            <p id="avisoPub" class="aviso" aria-live="polite"></p>
+        </div>
+    </section>
+
+
+    <!-- DENUNCIAR -->
+    <section class="tela" id="tela-denunciar">
+        <button type="button" class="voltar" onclick="voltarTela()">← Voltar</button>
+        <h2 style="margin-top:4px">Denunciar</h2>
+
+        <div class="bloco">
+            <p class="ajuda" id="denAlvo"></p>
+            <h3>Qual é o problema?</h3>
+            <div id="listaMotivos"></div>
+
+            <label class="rot" for="denDetalhes">Detalhes (opcional)</label>
+            <textarea id="denDetalhes" rows="4" maxlength="500" placeholder="Conte o que aconteceu, se quiser."></textarea>
+
+            <button type="button" class="btn" style="width:100%" onclick="enviarDenuncia()">Enviar denúncia</button>
+            <p id="avisoDen" class="aviso" aria-live="polite"></p>
+        </div>
+    </section>
+
+
+    <!-- LEITURA DE CAPÍTULO -->
+    <section class="tela" id="tela-ler">
+        <button type="button" class="voltar" onclick="voltarDaLeitura()">← Voltar à história</button>
+        <div class="leitor">
+            <p class="ajuda" id="lerHistoria"></p>
+            <h1 id="lerTitulo"></h1>
+            <div id="lerTexto" class="leitura-texto"></div>
+            <div id="espacoBanner" class="banner" style="display:none"></div>
+            <p class="contador-leitura" id="lerContador"></p>
+            <p class="contador-leitura" id="lerTesteVinheta"></p>
+            <div class="acoes" id="lerNavegacao"></div>
+        </div>
+    </section>
+
+
+    <!-- VINHETA (anúncio em tela cheia, entre capítulos) -->
+    <div id="vinheta" class="vinheta" style="display:none">
+        <div class="vinheta-caixa">
+            <button type="button" class="vinheta-fechar" onclick="fecharVinheta()" aria-label="Fechar">✕</button>
+            <p class="banner-rotulo">Publicidade</p>
+            <div class="banner-caixa">Espaço da vinheta</div>
+            <button type="button" class="btn" style="width:100%" onclick="fecharVinheta()">Continuar para o próximo capítulo</button>
+        </div>
+    </div>
+
+
+    <!-- PERFIL E CONTA -->
+    <section class="tela" id="tela-editarperfil">
+        <button type="button" class="voltar" onclick="voltarTela()">← Voltar</button>
+        <h2 style="margin-top:4px">Perfil e conta</h2>
+
+        <div class="bloco">
+            <div class="foto-area">
+                <button type="button" class="avatar avatar-grande" id="avatarEdicao" aria-label="Foto do perfil">?</button>
+                <div>
+                    <label class="btn claro mini" for="campoFoto">Trocar foto</label>
+                    <input type="file" id="campoFoto" accept="image/*" style="display:none">
+                    <button type="button" class="btn perigo mini" onclick="removerFoto()">Remover</button>
+                </div>
+            </div>
+
+            <label class="rot" for="perfNome">Nome</label>
+            <input type="text" id="perfNome" maxlength="40" placeholder="Como você quer ser chamado">
+
+            <label class="rot" for="perfUsuario">Nome de usuário</label>
+            <input type="text" id="perfUsuario" maxlength="20" autocapitalize="none" placeholder="seunome">
+            <p class="ajuda" style="margin-top:6px">De 3 a 20 letras sem acento, números, _ ou ponto. Se alguém já usar este nome, avisaremos.</p>
+
+            <label class="rot" for="perfSobre">Sobre você</label>
+            <textarea id="perfSobre" rows="4" maxlength="200" placeholder="Fale um pouco sobre você"></textarea>
+
+            <button type="button" class="btn" style="width:100%" onclick="salvarPerfil()">Salvar perfil</button>
+            <p id="avisoPerfil" class="aviso" aria-live="polite"></p>
+        </div>
+
+        <div class="bloco">
+            <h3>Dados deste aparelho</h3>
+            <p class="ajuda">Apaga o que o app guardou aqui: preferências e textos não salvos. As histórias e capítulos da sua conta continuam online. Não dá para desfazer.</p>
+            <button type="button" class="btn perigo" onclick="apagarDadosDoAparelho()">Apagar dados deste aparelho</button>
+        </div>
+    </section>
+
+    <!-- APARÊNCIA E LEITURA -->
+    <section class="tela" id="tela-preferencias">
+        <button type="button" class="voltar" onclick="voltarTela()">← Voltar</button>
+        <h2 style="margin-top:4px">Aparência e leitura</h2>
+
+        <div class="bloco">
+            <h3>Modo escuro</h3>
+            <div class="opcoes" id="opcoesTema"></div>
+        </div>
+
+        <div class="bloco">
+            <h3>Letra da leitura</h3>
+            <p class="ajuda">Tamanho</p>
+            <div class="opcoes" id="opcoesTamanho"></div>
+            <p class="ajuda" style="margin-top:14px">Tipo de letra</p>
+            <div class="opcoes" id="opcoesFonte"></div>
+            <div id="lerAmostra" class="leitura-texto amostra">
+                <p>Assim o texto aparece quando você lê um capítulo.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- NOTIFICAÇÕES -->
+    <section class="tela" id="tela-notificacoes">
+        <button type="button" class="voltar" onclick="voltarTela()">← Voltar</button>
+        <h2 style="margin-top:4px">Notificações</h2>
+        <div class="bloco">
+            <p class="ajuda">Escolha o que você quer receber. As notificações de verdade começam em uma próxima versão.</p>
+            <div id="listaNotif"></div>
+        </div>
+    </section>
+
+    <!-- AJUDA E SUPORTE -->
+    <section class="tela legal" id="tela-ajuda">
+        <button type="button" class="voltar" onclick="voltarTela()">← Voltar</button>
+        <div id="textoAjuda"></div>
+        <a class="btn" id="linkSuporte" href="#ajuda" style="width:100%">Escrever para o suporte</a>
+    </section>
+
+</main>
+
+<!-- BARRA DE FERRAMENTAS -->
+<nav class="bottom-nav">
+    <a class="nav-item" href="#inicio" data-tela="inicio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"></path><path d="M5 10v10h14V10"></path></svg>Início</a>
+    <a class="nav-item" href="#buscar" data-tela="buscar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>Buscar</a>
+    <a class="nav-item" href="#biblioteca" data-tela="biblioteca"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>Biblioteca</a>
+    <a class="nav-item" href="#escrever" data-tela="escrever"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>Escrever</a>
+    <a class="nav-item" href="#avisos" data-tela="avisos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>Avisos</a>
+</nav>
+
+<script>
+
+/* =====================================================
+   CONEXÃO COM O SUPABASE
+   A chave publishable pode ficar aqui; a proteção vem das regras RLS do banco.
+===================================================== */
+var SUPABASE_URL = "https://fcqpmvwgujwjuxksrtsi.supabase.co";
+var SUPABASE_KEY = "sb_publishable_mDSMdIZL5e0apM5i35S7lQ_6kkGkfxP";
+var semConexao = !window.supabase;
+var db = semConexao ? criarBancoVazio() : supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// Substituto usado só se a biblioteca do Supabase não carregar: o site continua abrindo e navegando
+function criarBancoVazio() {
+    var falha = { data: null, error: { message: "sem conexão" }, count: 0 };
+    function cadeia() {
+        var c = {};
+        ["select", "eq", "in", "order", "limit", "insert", "update", "upsert", "delete", "single", "maybeSingle"].forEach(function (m) {
+            c[m] = function () { return c; };
+        });
+        c.then = function (ok) { ok(falha); };
+        return c;
+    }
+    return {
+        from: cadeia,
+        auth: {
+            onAuthStateChange: function (f) { setTimeout(function () { f("INITIAL_SESSION", null); }, 0); return { data: { subscription: {} } }; },
+            signUp: async function () { return { data: {}, error: { message: "sem conexão" } }; },
+            signInWithPassword: async function () { return { data: {}, error: { message: "sem conexão" } }; },
+            signOut: async function () { return { error: null }; }
+        }
+    };
+}
+
+
+var usuarioLogado = null;
+
+/* =====================================================
+   DADOS E ESTADO
+===================================================== */
+var GENEROS = [
+    { id: "isekai", nome: "Isekai" },
+    { id: "tensei", nome: "Tensei" },
+    { id: "drama", nome: "Drama" },
+    { id: "comedia", nome: "Comédia" },
+    { id: "terror", nome: "Terror / Horror" },
+    { id: "guerra", nome: "Guerra" },
+    { id: "epico", nome: "Épico" },
+    { id: "fantasia", nome: "Fantasia" },
+    { id: "romance", nome: "Romance" },
+    { id: "acao", nome: "Ação" },
+    { id: "misterio", nome: "Suspense / Mistério" },
+    { id: "policial", nome: "Policial" },
+    { id: "poesia", nome: "Poesia" },
+    { id: "lgbtqia", nome: "LGBTQIA+" },
+    { id: "religioso-fe", nome: "Religioso / Fé" },
+    { id: "aventura", nome: "Aventura" },
+    { id: "ficcao-cientifica", nome: "Ficção Científica" },
+    { id: "historico", nome: "Histórico" },
+    { id: "fanfic", nome: "Fanfic" }
+];
+
+var TELAS = ["inicio", "buscar", "biblioteca", "escrever", "avisos", "perfil", "configuracoes", "livro", "nova", "capitulos", "editor", "entrar", "termos", "privacidade", "publicar", "denunciar", "ler", "editarperfil", "preferencias", "notificacoes", "ajuda"];
+
+var HISTORIAS = [];          // histórias publicadas (lista do início e da busca)
+var NOMES = {};              // id do autor -> nome
+var erroListas = "";
+var ultimaCargaHist = 0;
+var minhaHistoria = null;    // a história da conta logada
+var meusCapitulos = [];      // capítulos da minha história (rascunhos e publicados)
+var mapaLeiturasMeu = {};
+var generoSel = { inicio: "", busca: "" };
+var RANKING = [];
+var capaDados = "";
+var editandoId = null;
+var temporizador = null;
+var tokenRota = 0;
+
+var CH_PERFIL = "webnovel_perfil";
+var CH_CONFIG = "webnovel_config";
+var CH_BACKUP = "webnovel_backup_capitulo";
+var CH_TEMPO = "webnovel_tempo_leitura";
+
+var PALETAS = [["#FF9966", "#FF5E62"], ["#434343", "#1a1a1a"], ["#FF5E62", "#B0305C"], ["#F2994A", "#E65C00"], ["#2C3E50", "#4CA1AF"]];
+
+/* =====================================================
+   FERRAMENTAS BÁSICAS
+===================================================== */
+function pegar(id) { return document.getElementById(id); }
+
+function criar(tag, classe, texto) {
+    var e = document.createElement(tag);
+    if (classe) e.className = classe;
+    if (texto !== undefined) e.textContent = texto;
+    return e;
+}
+
+function acharPorId(lista, id) {
+    for (var i = 0; i < lista.length; i++) {
+        if (lista[i].id === id) return lista[i];
+    }
+    return null;
+}
+
+function lerDados(chave, padrao) {
+    try {
+        var v = JSON.parse(localStorage.getItem(chave));
+        return (v === null || v === undefined) ? padrao : v;
+    } catch (erro) {
+        return padrao;
+    }
+}
+
+function gravar(chave, valor) {
+    try {
+        localStorage.setItem(chave, JSON.stringify(valor));
+        return true;
+    } catch (erro) {
+        return false;
+    }
+}
+
+function apagarLocal(chave) {
+    try { localStorage.removeItem(chave); } catch (erro) { }
+}
+
+function aviso(id, texto, deuErro) {
+    var e = pegar(id);
+    if (!e) return;
+    e.textContent = texto;
+    e.className = "aviso " + (deuErro ? "erro" : "ok");
+}
+
+function contar(texto) {
+    var limpo = (texto || "").trim();
+    return limpo ? limpo.split(/\s+/).length : 0;
+}
+
+function dataBonita(iso) {
+    try { return new Date(iso).toLocaleDateString("pt-BR"); }
+    catch (erro) { return ""; }
+}
+
+function lerIdDaRota(texto) {
+    return /^[0-9]+$/.test(texto) ? parseInt(texto, 10) : texto;
+}
+
+function rotuloLeituras(n) {
+    return n + (n === 1 ? " leitura" : " leituras");
+}
+
+// Só aceita imagens no formato esperado (evita conteúdo estranho vindo do banco)
+function imagemSegura(s) {
+    return (typeof s === "string" && /^data:image\/(jpeg|png|webp|gif);base64,[A-Za-z0-9+\/=]+$/.test(s)) ? s : "";
+}
+
+function cores(id) {
+    var n = parseInt(id, 10) || 0;
+    return PALETAS[n % PALETAS.length];
+}
+
+function pintarCapa(el, h) {
+    var img = imagemSegura(h.capa);
+    if (img) {
+        el.textContent = "";
+        el.style.backgroundImage = "url(" + img + ")";
+    } else {
+        el.style.background = "linear-gradient(135deg," + h.cor1 + "," + h.cor2 + ")";
+    }
+}
+
+function ordenarCapitulos(lista) {
+    lista.sort(function (a, b) {
+        if (a.parte !== b.parte) return a.parte - b.parte;
+        if (a.ordem !== b.ordem) return a.ordem - b.ordem;
+        return a.id - b.id;
+    });
+}
+
+/* =====================================================
+   BANCO DE DADOS: LEITURA DE HISTÓRIAS E CAPÍTULOS
+===================================================== */
+async function carregarNomes(ids) {
+    var faltam = ids.filter(function (id, i) { return id && !NOMES[id] && ids.indexOf(id) === i; });
+    if (!faltam.length) return;
+    var r = await db.from("perfis").select("id,nome,usuario").in("id", faltam);
+    (r.data || []).forEach(function (p) { NOMES[p.id] = p.nome || p.usuario || "Autor"; });
+}
+
+function normalizar(h) {
+    var c = cores(h.id);
+    h.cor1 = c[0];
+    h.cor2 = c[1];
+    h.autor = NOMES[h.autor_id] || "Autor";
+    h.generos = h.generos || [];
+    return h;
+}
+
+async function carregarHistorias() {
+    var r = await db.from("historias")
+        .select("id,titulo,sinopse,capa,generos,idade,status,autor_id,criado_em")
+        .eq("publicada", true)
+        .order("criado_em", { ascending: false })
+        .limit(60);
+    if (r.error) {
+        HISTORIAS = [];
+        erroListas = "Não foi possível carregar as histórias agora.";
+        return;
+    }
+    erroListas = "";
+    await carregarNomes(r.data.map(function (h) { return h.autor_id; }));
+    HISTORIAS = r.data.map(normalizar);
+}
+
+async function atualizarListas(forcar) {
+    if (!forcar && Date.now() - ultimaCargaHist < 30000) {
+        desenharInicio(false);
+        desenharBusca();
+        return;
+    }
+    desenharInicio(true);
+    await carregarHistorias();
+    await carregarRanking();
+    ultimaCargaHist = Date.now();
+    desenharInicio(false);
+    desenharBusca();
+}
+
+async function buscarHistoria(id) {
+    if (typeof id !== "number") return null;
+    var r = await db.from("historias").select("*").eq("id", id).maybeSingle();
+    if (r.error || !r.data) return null;
+    await carregarNomes([r.data.autor_id]);
+    return normalizar(r.data);
+}
+
+async function listarCapitulos(historiaId, soPublicados, comTexto) {
+    var colunas = "id,historia_id,parte,ordem,titulo,publicado,publicado_em" + (comTexto ? ",texto" : "");
+    var q = db.from("capitulos").select(colunas).eq("historia_id", historiaId);
+    if (soPublicados) q = q.eq("publicado", true);
+    var r = await q.order("parte", { ascending: true }).order("ordem", { ascending: true }).order("id", { ascending: true });
+    return r.error ? null : r.data;
+}
+
+async function contagemLeituras(ids) {
+    var mapa = {};
+    if (!ids.length) return mapa;
+    try {
+        var r = await db.from("leituras_por_capitulo").select("capitulo_id,total").in("capitulo_id", ids);
+        (r.data || []).forEach(function (x) { mapa[x.capitulo_id] = x.total; });
+    } catch (erro) { }
+    return mapa;
+}
+
+function somar(mapa) {
+    var s = 0;
+    for (var k in mapa) { if (mapa.hasOwnProperty(k)) s += mapa[k]; }
+    return s;
+}
+
+/* =====================================================
+   INÍCIO, BUSCA E LIVRO
+===================================================== */
+function nomeGenero(id) {
+    for (var i = 0; i < GENEROS.length; i++) {
+        if (GENEROS[i].id === id) return GENEROS[i].nome;
+    }
+    return id;
+}
+
+function criarCard(h) {
+    var a = criar("a", "book-card");
+    a.href = "#livro-" + h.id;
+    var capa = criar("div", "capa book-cover", h.titulo);
+    pintarCapa(capa, h);
+    a.appendChild(capa);
+    var info = criar("div", "book-info");
+    info.appendChild(criar("div", "book-title", h.titulo));
+    info.appendChild(criar("div", "book-genre", h.generos.length ? nomeGenero(h.generos[0]) : h.autor));
+    a.appendChild(info);
+    return a;
+}
+
+function fecharGaveta() {
+    var c = pegar("menu-toggle");
+    if (c) c.checked = false;
+}
+
+function desenharInicio(carregando) {
+    var area = pegar("prateleiras");
+    area.innerHTML = "";
+
+    if (carregando && !HISTORIAS.length) {
+        area.appendChild(criar("p", "vazio", "Carregando histórias..."));
+        return;
+    }
+
+    if (!HISTORIAS.length) {
+        var vazio = criar("div", "empty-state");
+        vazio.appendChild(criar("h3", "", "Em breve, novas histórias"));
+        vazio.appendChild(criar("p", "", erroListas || "Volte daqui a pouco para ver os novos livros."));
+        area.appendChild(vazio);
+        return;
+    }
+
+    var g = generoSel.inicio;
+    var lista = HISTORIAS.filter(function (h) { return !g || h.generos.indexOf(g) !== -1; }).slice(0, 30);
+
+    area.appendChild(criar("h2", "section-title", "Novidades"));
+    if (!lista.length) {
+        area.appendChild(criar("p", "vazio", "Nenhuma história neste gênero ainda."));
+    } else {
+        var grade = criar("div", "books-grid");
+        lista.forEach(function (h) { grade.appendChild(criarCard(h)); });
+        area.appendChild(grade);
+    }
+
+    if (RANKING.length) {
+        area.appendChild(criar("h2", "section-title", "Top Leitura"));
+        var top = criar("div", "bestsellers-list");
+        RANKING.slice(0, 6).forEach(function (h, i) {
+            var a = criar("a", "bestseller-item");
+            a.href = "#livro-" + h.id;
+            a.appendChild(criar("div", "rank-number" + (i < 2 ? " top" : ""), String(i + 1)));
+            var info = criar("div", "bs-info");
+            info.appendChild(criar("div", "bs-title", h.titulo));
+            info.appendChild(criar("div", "bs-desc", h.sinopse || ""));
+            a.appendChild(info);
+            top.appendChild(a);
+        });
+        area.appendChild(top);
+    }
+}
+
+// Ranking por leituras (precisa da view leituras_por_historia; se não existir, a seção some)
+async function carregarRanking() {
+    RANKING = [];
+    if (!HISTORIAS.length) return;
+    try {
+        var r = await db.from("leituras_por_historia").select("historia_id,total").in("historia_id", HISTORIAS.map(function (h) { return h.id; })).order("total", { ascending: false }).limit(10);
+        if (r.error) return;
+        var porId = {};
+        HISTORIAS.forEach(function (h) { porId[h.id] = h; });
+        RANKING = (r.data || []).filter(function (x) { return x.total > 0 && porId[x.historia_id]; }).map(function (x) { return porId[x.historia_id]; });
+    } catch (erro) { }
+}
+
+function desenharChips(idArea, tipo) {
+    var area = pegar(idArea);
+    area.innerHTML = "";
+
+    var todos = [{ id: "", nome: "Todos" }].concat(GENEROS);
+    todos.forEach(function (g) {
+        var chip = criar("button", "chip" + (g.id === generoSel[tipo] ? " ativo" : ""), g.nome);
+        chip.addEventListener("click", function () {
+            generoSel[tipo] = g.id;
+            var irmaos = area.children;
+            for (var i = 0; i < irmaos.length; i++) irmaos[i].classList.toggle("ativo", irmaos[i] === chip);
+            if (tipo === "inicio") desenharInicio(false);
+            else desenharBusca();
+        });
+        area.appendChild(chip);
+    });
+}
+
+function desenharBusca() {
+    var termo = pegar("campoBusca").value.trim().toLowerCase();
+    var g = generoSel.busca;
+    var lista = pegar("resultado");
+    lista.innerHTML = "";
+    var achou = 0;
+
+    HISTORIAS.forEach(function (h) {
+        if (g && h.generos.indexOf(g) === -1) return;
+        if (termo) {
+            var alvo = (h.titulo + " " + h.autor + " " + h.generos.map(nomeGenero).join(" ")).toLowerCase();
+            if (alvo.indexOf(termo) === -1) return;
+        }
+        lista.appendChild(criarCard(h));
+        achou++;
+    });
+
+    pegar("vazioBusca").style.display = achou ? "none" : "block";
+}
+
+pegar("campoBusca").addEventListener("input", desenharBusca);
+
+var estadoCurtida = { id: null, n: 0, curtiu: false, ocupado: false };
+
+async function contarCurtidas(id) {
+    var r = await db.from("curtidas").select("historia_id", { count: "exact", head: true }).eq("historia_id", id);
+    return r.count || 0;
+}
+
+async function euCurti(id) {
+    if (!usuarioLogado) return false;
+    var r = await db.from("curtidas").select("historia_id").eq("historia_id", id).eq("usuario_id", usuarioLogado.id).maybeSingle();
+    return !!(r.data);
+}
+
+async function mostrarLivro(id, token) {
+    var area = pegar("livro");
+    area.innerHTML = "";
+    area.appendChild(criar("p", "vazio", "Carregando..."));
+
+    var h = await buscarHistoria(id);
+    if (token !== tokenRota) return;
+    area.innerHTML = "";
+
+    if (!h) {
+        area.appendChild(criar("p", "vazio", "História não encontrada."));
+        return;
+    }
+
+    var capa = criar("div", "capa livro-capa", h.titulo);
+    pintarCapa(capa, h);
+    area.appendChild(capa);
+    area.appendChild(criar("h1", "", h.titulo));
+    area.appendChild(criar("p", "autor", "por " + h.autor));
+
+    var chips = criar("div", "chips");
+    GENEROS.forEach(function (g) {
+        if (h.generos.indexOf(g.id) !== -1) chips.appendChild(criar("span", "chip", g.nome));
+    });
+    area.appendChild(chips);
+    area.appendChild(criar("p", "sinopse", h.sinopse || "Sem sinopse."));
+
+    if (!h.publicada) area.appendChild(criar("p", "ajuda", "Rascunho: só você vê esta página."));
+
+    var caps = (await listarCapitulos(h.id, true, false)) || [];
+    var mapa = await contagemLeituras(caps.map(function (c) { return c.id; }));
+    var nCurtidas = await contarCurtidas(h.id);
+    var jaCurti = await euCurti(h.id);
+    if (token !== tokenRota) return;
+
+    area.appendChild(criar("p", "autor", "Leituras: " + somar(mapa)));
+
+    if (caps.length) {
+        var comecar = criar("button", "btn", "Começar a ler");
+        comecar.style.width = "100%";
+        comecar.addEventListener("click", function () { location.hash = "ler-" + h.id + "-1"; });
+        area.appendChild(comecar);
+    }
+
+    area.appendChild(criar("h2", "", "Capítulos (" + caps.length + ")"));
+    if (!caps.length) area.appendChild(criar("p", "vazio", "Esta história ainda não tem capítulos publicados."));
+
+    var partesUsadas = {};
+    caps.forEach(function (c) { partesUsadas[c.parte] = true; });
+    var variasPartes = Object.keys(partesUsadas).length > 1;
+    var parteAtual = null;
+
+    caps.forEach(function (c, i) {
+        if (variasPartes && c.parte !== parteAtual) {
+            area.appendChild(criar("h3", "parte-titulo", "Parte " + c.parte));
+            parteAtual = c.parte;
+        }
+        var linha = criar("button", "bloco linha-cap");
+        linha.appendChild(criar("strong", "", "Capítulo " + (i + 1) + (c.titulo ? ": " + c.titulo : "")));
+        linha.appendChild(criar("span", "ajuda", rotuloLeituras(mapa[c.id] || 0)));
+        linha.addEventListener("click", function () { location.hash = "ler-" + h.id + "-" + (i + 1); });
+        area.appendChild(linha);
+    });
+
+    var acoes = criar("div", "acoes-livro");
+    acoes.id = "blocoAcoes";
+    area.appendChild(acoes);
+
+    var avisoAcoes = criar("p", "aviso");
+    avisoAcoes.id = "avisoAcoes";
+    avisoAcoes.style.textAlign = "center";
+    area.appendChild(avisoAcoes);
+
+    var comentarios = criar("div");
+    comentarios.id = "blocoComentarios";
+    area.appendChild(comentarios);
+
+    estadoCurtida = { id: h.id, n: nCurtidas, curtiu: jaCurti, ocupado: false, titulo: h.titulo };
+    desenharAcoes();
+    desenharComentarios(h.id, h.titulo, token);
+}
+
+/* =====================================================
+   MINHA HISTÓRIA (cartão na Biblioteca, Escrever e Perfil)
+===================================================== */
+async function carregarMinhaHistoria() {
+    minhaHistoria = null;
+    meusCapitulos = [];
+    if (!usuarioLogado) return;
+    var r = await db.from("historias").select("*").eq("autor_id", usuarioLogado.id).order("criado_em", { ascending: false }).limit(1);
+    if (r.data && r.data.length) {
+        minhaHistoria = r.data[0];
+        meusCapitulos = (await listarCapitulos(minhaHistoria.id, false, true)) || [];
+    }
+}
+
+function desenharRascunho(idArea) {
+    var area = pegar(idArea);
+    area.innerHTML = "";
+
+    if (!usuarioLogado) {
+        if (idArea !== "escreverRascunho") area.appendChild(criar("p", "vazio", "Entre na sua conta para ver as suas histórias."));
+        return;
+    }
+
+    var r = minhaHistoria;
+    if (!r || !r.titulo) {
+        if (idArea !== "escreverRascunho") area.appendChild(criar("p", "vazio", "Você ainda não criou nenhuma história."));
+        return;
+    }
+
+    var bloco = criar("div", "bloco rascunho");
+    var capa = criar("div", "capa", r.titulo);
+    pintarCapa(capa, { capa: r.capa, cor1: "#FF9966", cor2: "#FF5E62" });
+    bloco.appendChild(capa);
+
+    var texto = criar("div");
+    texto.appendChild(criar("strong", "", r.titulo));
+    var estado = criar("p", "vazio", r.publicada ? "Publicada" : "Rascunho");
+    texto.appendChild(estado);
+
+    var continuar = criar("a", "btn mini", "Continuar");
+    continuar.href = "#capitulos";
+    var info = criar("a", "btn claro mini", "Informações");
+    info.href = "#nova";
+    info.style.marginLeft = "8px";
+
+    texto.appendChild(continuar);
+    texto.appendChild(info);
+
+    var ver = criar("a", "btn claro mini", "Ver como leitor");
+    ver.href = "#livro-" + r.id;
+    ver.style.marginTop = "8px";
+    texto.appendChild(ver);
+    bloco.appendChild(texto);
+    area.appendChild(bloco);
+}
+
+function atualizarRascunhos() {
+    desenharRascunho("bibliotecaRascunho");
+    desenharRascunho("escreverRascunho");
+    desenharRascunho("perfilRascunho");
+
+    var tem = !!(usuarioLogado && minhaHistoria && minhaHistoria.titulo);
+    pegar("numObras").textContent = tem ? "1" : "0";
+    // Por enquanto o app guarda uma história por conta
+    pegar("blocoNova").style.display = (usuarioLogado && !tem) ? "block" : "none";
+    pegar("blocoEscreverLogin").style.display = usuarioLogado ? "none" : "block";
+}
+
+/* =====================================================
+   NOVA HISTÓRIA (formulário)
+===================================================== */
+function montarGeneros() {
+    var area = pegar("listaGeneros");
+    GENEROS.forEach(function (g) {
+        var rotulo = criar("label", "opcao");
+        var caixa = document.createElement("input");
+        caixa.type = "checkbox";
+        caixa.name = "genero";
+        caixa.value = g.id;
+        rotulo.appendChild(caixa);
+        rotulo.appendChild(document.createTextNode(" " + g.nome));
+        area.appendChild(rotulo);
+    });
+}
+
+function mostrarPrevia() {
+    var previa = pegar("previaCapa");
+    var img = imagemSegura(capaDados);
+    if (img) {
+        previa.src = img;
+        previa.classList.add("visivel");
+    } else {
+        previa.classList.remove("visivel");
+    }
+}
+
+pegar("capa").addEventListener("change", function () {
+    var arquivo = this.files[0];
+    if (!arquivo) return;
+
+    var leitor = new FileReader();
+    leitor.onload = function () {
+        var img = new Image();
+        img.onload = function () {
+            var largura = Math.min(360, img.width);
+            var altura = Math.round(img.height * largura / img.width);
+            var quadro = document.createElement("canvas");
+            quadro.width = largura;
+            quadro.height = altura;
+            quadro.getContext("2d").drawImage(img, 0, 0, largura, altura);
+            capaDados = quadro.toDataURL("image/jpeg", 0.75);
+            mostrarPrevia();
+        };
+        img.src = leitor.result;
+    };
+    leitor.readAsDataURL(arquivo);
+});
+
+function carregarForm() {
+    var d = minhaHistoria || {};
+    pegar("titulo").value = d.titulo || "";
+    pegar("sinopse").value = d.sinopse || "";
+    pegar("idade").value = d.idade || "";
+
+    var generos = document.querySelectorAll('input[name="genero"]');
+    for (var i = 0; i < generos.length; i++) {
+        generos[i].checked = (d.generos || []).indexOf(generos[i].value) !== -1;
+    }
+
+    var status = document.querySelectorAll('input[name="status"]');
+    for (var j = 0; j < status.length; j++) {
+        status[j].checked = (status[j].value === d.status);
+    }
+
+    capaDados = d.capa || "";
+    mostrarPrevia();
+    pegar("avisoForm").textContent = usuarioLogado ? "" : "Entre na sua conta para salvar a história.";
+    pegar("avisoForm").className = "aviso" + (usuarioLogado ? "" : " erro");
+}
+
+var salvandoForm = false;
+
+async function salvarForm(continuar) {
+    if (salvandoForm) return;
+
+    if (!usuarioLogado) {
+        aviso("avisoForm", "Entre na sua conta para salvar a história.", true);
+        return;
+    }
+
+    var marcados = document.querySelectorAll('input[name="genero"]:checked');
+    var generos = [];
+    for (var i = 0; i < marcados.length; i++) generos.push(marcados[i].value);
+    var status = document.querySelector('input[name="status"]:checked');
+
+    var dados = {
+        titulo: pegar("titulo").value.trim(),
+        sinopse: pegar("sinopse").value.trim(),
+        generos: generos,
+        idade: pegar("idade").value || null,
+        status: status ? status.value : null,
+        capa: capaDados || null
+    };
+
+    if (!dados.titulo) {
+        aviso("avisoForm", "Digite o título da história para salvar.", true);
+        pegar("titulo").focus();
+        return;
+    }
+
+    salvandoForm = true;
+    aviso("avisoForm", "Salvando...", false);
+
+    var r;
+    if (minhaHistoria) {
+        r = await db.from("historias").update(dados).eq("id", minhaHistoria.id).select().single();
+    } else {
+        dados.autor_id = usuarioLogado.id;
+        dados.publicada = false;
+        r = await db.from("historias").insert(dados).select().single();
+    }
+    salvandoForm = false;
+
+    if (r.error) {
+        aviso("avisoForm", "Não foi possível salvar. Tente uma capa menor ou tente de novo.", true);
+        return;
+    }
+
+    minhaHistoria = r.data;
+    if (continuar) location.hash = "capitulos";
+    else aviso("avisoForm", "Rascunho salvo na sua conta.", false);
+}
+
+/* =====================================================
+   CAPÍTULOS (lista do autor)
+===================================================== */
+function abrirCapitulos() {
+    var sem = !usuarioLogado || !minhaHistoria;
+    pegar("semHistoria").style.display = sem ? "block" : "none";
+    pegar("vistaLista").style.display = sem ? "none" : "block";
+
+    if (sem) {
+        pegar("semHistoriaTexto").textContent = usuarioLogado ? "Crie a sua história antes de escrever os capítulos." : "Entre na sua conta para escrever capítulos.";
+        var b = pegar("semHistoriaBtn");
+        b.textContent = usuarioLogado ? "Criar história" : "Entrar ou criar conta";
+        b.setAttribute("href", usuarioLogado ? "#nova" : "#entrar");
+        return;
+    }
+
+    var h = minhaHistoria;
+    pegar("topoTitulo").textContent = h.titulo;
+    pegar("statusHistoria").textContent = h.publicada ? "História publicada: os leitores já podem encontrá-la." : "História em rascunho: ainda não aparece para os leitores.";
+    pegar("statusAceite").textContent = h.aceite_autor
+        ? "Declaração do autor registrada em " + dataBonita(h.aceite_autor.data) + "."
+        : "Declaração do autor ainda não registrada. Ela é pedida ao publicar a história.";
+
+    var img = pegar("topoCapa");
+    var capa = imagemSegura(h.capa);
+    if (capa) {
+        img.src = capa;
+        img.style.display = "block";
+    } else {
+        img.style.display = "none";
+    }
+
+    pegar("avisoLista").textContent = "";
+    pegar("totalLeituras").textContent = "";
+    desenharLista();
+
+    var token = tokenRota;
+    contagemLeituras(meusCapitulos.map(function (c) { return c.id; })).then(function (mapa) {
+        if (token !== tokenRota) return;
+        mapaLeiturasMeu = mapa;
+        pegar("totalLeituras").textContent = "Total: " + rotuloLeituras(somar(mapa));
+        desenharLista();
+    });
+}
+
+function desenharLista() {
+    var area = pegar("lista");
+    area.innerHTML = "";
+
+    if (!meusCapitulos.length) {
+        area.appendChild(criar("p", "vazio", "Nenhum capítulo ainda. Comece o primeiro."));
+        return;
+    }
+
+    meusCapitulos.forEach(function (c, i) {
+        var linha = criar("div", "bloco capitulo");
+
+        var info = criar("div");
+        var titulo = criar("strong", "", "Parte " + c.parte + " · Capítulo " + (i + 1) + (c.titulo ? ": " + c.titulo : ""));
+        info.appendChild(titulo);
+        info.appendChild(criar("span", "selo" + (c.publicado ? " ok" : ""), c.publicado ? "Publicado" : "Rascunho"));
+        info.appendChild(criar("p", "ajuda", contar(c.texto) + " palavras · " + rotuloLeituras(mapaLeiturasMeu[c.id] || 0)));
+        linha.appendChild(info);
+
+        var botoes = criar("div", "botoes");
+
+        var editar = criar("button", "btn claro mini", "Editar");
+        editar.addEventListener("click", function () {
+            editandoId = c.id;
+            location.hash = "editor";
+        });
+
+        var publicar = criar("button", "btn mini" + (c.publicado ? " claro" : ""), c.publicado ? "Despublicar" : "Publicar");
+        publicar.addEventListener("click", function () { alternarPublicacaoCap(c, publicar); });
+
+        var apagar = criar("button", "btn perigo mini", "Apagar");
+        apagar.addEventListener("click", function () { apagarCap(c); });
+
+        botoes.appendChild(editar);
+        botoes.appendChild(publicar);
+        botoes.appendChild(apagar);
+        linha.appendChild(botoes);
+        area.appendChild(linha);
+    });
+}
+
+async function alternarPublicacaoCap(c, botao) {
+    if (!c.publicado && !minhaHistoria.publicada) {
+        aviso("avisoLista", "Antes, toque em Publicar história (declaração do autor). Depois publique cada capítulo.", true);
+        return;
+    }
+    if (!c.publicado && !(c.texto || "").trim()) {
+        aviso("avisoLista", "Este capítulo está sem texto. Escreva algo antes de publicar.", true);
+        return;
+    }
+
+    var novo = !c.publicado;
+    botao.disabled = true;
+    var r = await db.from("capitulos").update({ publicado: novo, publicado_em: novo ? new Date().toISOString() : null }).eq("id", c.id).select().single();
+    botao.disabled = false;
+
+    if (r.error) {
+        aviso("avisoLista", "Não foi possível alterar a publicação. Tente de novo.", true);
+        return;
+    }
+
+    c.publicado = r.data.publicado;
+    c.publicado_em = r.data.publicado_em;
+    aviso("avisoLista", novo ? "Capítulo publicado." : "Capítulo voltou para rascunho.", false);
+    desenharLista();
+}
+
+async function apagarCap(c) {
+    if (!confirm("Apagar este capítulo? Não dá para desfazer.")) return;
+    var r = await db.from("capitulos").delete().eq("id", c.id);
+    if (r.error) {
+        aviso("avisoLista", "Não foi possível apagar. Tente de novo.", true);
+        return;
+    }
+    meusCapitulos = meusCapitulos.filter(function (x) { return x.id !== c.id; });
+    aviso("avisoLista", "Capítulo apagado.", false);
+    desenharLista();
+}
+
+function novoCapitulo() {
+    editandoId = null;
+    location.hash = "editor";
+}
+
+/* =====================================================
+   EDITOR DE CAPÍTULO
+   O texto é guardado também neste aparelho enquanto você digita,
+   e só é apagado de lá quando o salvamento na conta dá certo.
+===================================================== */
+var fila = Promise.resolve();
+
+function montarPartes() {
+    var s = pegar("capParte");
+    for (var i = 1; i <= 10; i++) {
+        var o = document.createElement("option");
+        o.value = String(i);
+        o.textContent = "Parte " + i;
+        s.appendChild(o);
+    }
+}
+
+function prepararEditor() {
+    var cap = acharPorId(meusCapitulos, editandoId);
+    if (!cap) editandoId = null;
+
+    var parte = cap ? cap.parte : (meusCapitulos.length ? meusCapitulos[meusCapitulos.length - 1].parte : 1);
+    var titulo = cap ? (cap.titulo || "") : "";
+    var texto = cap ? (cap.texto || "") : "";
+    var recuperou = false;
+
+    var b = lerDados(CH_BACKUP, null);
+    if (b && b.id === editandoId && (b.titulo !== titulo || b.texto !== texto) && (b.texto || b.titulo)) {
+        parte = b.parte || parte;
+        titulo = b.titulo || "";
+        texto = b.texto || "";
+        recuperou = true;
+    }
+
+    pegar("capParte").value = String(parte);
+    pegar("capTitulo").value = titulo;
+    pegar("capTexto").value = texto;
+    pegar("contaPalavras").textContent = contar(texto);
+    pegar("avisoCap").textContent = "";
+
+    if (!usuarioLogado || !minhaHistoria) {
+        aviso("avisoCap", "Entre na conta e crie a história para poder salvar capítulos.", true);
+    } else if (recuperou) {
+        aviso("avisoCap", "Recuperamos um texto que não tinha sido salvo. Toque em Salvar capítulo.", true);
+    }
+}
+
+function enfileirarSalvar(avisar) {
+    var p = fila.then(function () { return salvarCap(avisar); });
+    fila = p.catch(function () { });
+    return p;
+}
+
+// Retorna true (salvou), false (falhou) ou null (não havia nada para salvar)
+async function salvarCap(avisar) {
+    if (!usuarioLogado || !minhaHistoria) {
+        if (avisar) aviso("avisoCap", "Entre na conta e crie a história primeiro.", true);
+        return false;
+    }
+
+    var titulo = pegar("capTitulo").value.trim();
+    var texto = pegar("capTexto").value;
+    var parte = parseInt(pegar("capParte").value, 10) || 1;
+
+    if (!titulo && !texto.trim()) {
+        if (avisar) aviso("avisoCap", "Escreva um título ou um texto para salvar.", true);
+        return null;
+    }
+
+    var cap = acharPorId(meusCapitulos, editandoId);
+    var r;
+
+    if (!cap) {
+        var ordem = 0;
+        meusCapitulos.forEach(function (c) { if (c.parte === parte && c.ordem >= ordem) ordem = c.ordem + 1; });
+        r = await db.from("capitulos").insert({ historia_id: minhaHistoria.id, parte: parte, ordem: ordem, titulo: titulo, texto: texto, publicado: false }).select().single();
+    } else {
+        r = await db.from("capitulos").update({ parte: parte, titulo: titulo, texto: texto }).eq("id", cap.id).select().single();
+    }
+
+    if (r.error) {
+        aviso("avisoCap", "Não foi possível salvar na conta. Seu texto está guardado neste aparelho; tente de novo.", true);
+        return false;
+    }
+
+    if (cap) {
+        Object.assign(cap, r.data);
+    } else {
+        meusCapitulos.push(r.data);
+    }
+    editandoId = r.data.id;
+    ordenarCapitulos(meusCapitulos);
+    apagarLocal(CH_BACKUP);
+
+    aviso("avisoCap", avisar ? "Capítulo salvo na sua conta." : "Salvo automaticamente.", false);
+    return true;
+}
+
+async function voltarLista() {
+    clearTimeout(temporizador);
+    var ok = await enfileirarSalvar(false);
+    if (ok === false) return;
+    location.hash = "capitulos";
+}
+
+function aoDigitar() {
+    pegar("contaPalavras").textContent = contar(pegar("capTexto").value);
+    gravar(CH_BACKUP, {
+        id: editandoId,
+        parte: parseInt(pegar("capParte").value, 10) || 1,
+        titulo: pegar("capTitulo").value.trim(),
+        texto: pegar("capTexto").value
+    });
+    clearTimeout(temporizador);
+    temporizador = setTimeout(function () { enfileirarSalvar(false); }, 2000);
+}
+
+pegar("capTitulo").addEventListener("input", aoDigitar);
+pegar("capTexto").addEventListener("input", aoDigitar);
+pegar("capParte").addEventListener("change", aoDigitar);
+
+/* =====================================================
+   TROCA DE TELAS (pelo endereço: #inicio, #buscar, #livro-3, #nova ...)
+===================================================== */
+function rota() {
+    tokenRota++;
+    var token = tokenRota;
+    fecharGaveta();
+
+    var h = location.hash.replace("#", "") || "inicio";
+    var tela = h;
+    var id = null;
+
+    if (h.indexOf("livro-") === 0) {
+        tela = "livro";
+        id = lerIdDaRota(h.split("-")[1]);
+    }
+    if (h.indexOf("ler-") === 0) {
+        tela = "ler";
+        var partes = h.split("-");
+        leituraAtual = { id: lerIdDaRota(partes[1]), n: parseInt(partes[2], 10) };
+    }
+    if (TELAS.indexOf(tela) === -1) tela = "inicio";
+
+    TELAS.forEach(function (t) {
+        pegar("tela-" + t).classList.toggle("ativa", t === tela);
+    });
+
+    var destaque = tela;
+    if (tela === "livro") destaque = "inicio";
+    if (tela === "nova" || tela === "capitulos" || tela === "editor" || tela === "publicar") destaque = "escrever";
+
+    var gaveta = destaque;
+    if (["editarperfil", "preferencias", "notificacoes", "ajuda", "termos", "privacidade"].indexOf(tela) !== -1) gaveta = "configuracoes";
+    var itens = document.querySelectorAll(".bottom-nav .nav-item, .drawer-menu a[data-tela]");
+    for (var i = 0; i < itens.length; i++) {
+        var alvoItem = itens[i].getAttribute("data-tela");
+        var naGaveta = !!itens[i].closest(".drawer");
+        itens[i].classList.toggle("active", alvoItem === (naGaveta ? gaveta : destaque));
+    }
+
+    document.body.classList.toggle("escrita", tela === "editor" || tela === "nova" || tela === "entrar" || tela === "denunciar" || tela === "ler" || tela === "editarperfil");
+
+    pegar("vinheta").style.display = "none";
+    clearTimeout(relogioLeitura);
+    clearInterval(relogioTempo);
+
+    if (tela === "inicio" || tela === "buscar") atualizarListas(false);
+    if (tela === "livro") mostrarLivro(id, token);
+    if (tela === "ler") prepararLeitor(token);
+    if (tela === "nova") carregarForm();
+    if (tela === "capitulos") abrirCapitulos();
+    if (tela === "editor") prepararEditor();
+    if (tela === "publicar") prepararPublicar();
+    if (tela === "denunciar") prepararDenuncia();
+    if (tela === "editarperfil") prepararEditarPerfil();
+    if (tela === "preferencias") prepararPreferencias();
+    if (tela === "notificacoes") prepararNotificacoes();
+
+    atualizarRascunhos();
+    aplicarTema();
+    desenharAvatares();
+    desenharPerfil();
+    window.scrollTo(0, 0);
+}
+
+window.addEventListener("hashchange", rota);
+
+/* =====================================================
+   ENTRAR, TERMOS DE USO E POLÍTICA DE PRIVACIDADE
+   Troque os dois textos abaixo pelos seus dados reais.
+===================================================== */
+var NOME_RESPONSAVEL = "Tomazini";
+var EMAIL_CONTATO = "xegg.tmz@gmail.com";
+var DATA_TEXTOS = "10 de novembro de 2026";
+
+var TERMOS = [
+    { t: "1. Aceite dos termos", p: [
+        "Ao criar uma conta ou usar o PORTAL NOVEL, você concorda com estes Termos de Uso e com a Política de Privacidade. Se não concordar, não use o serviço."
+    ] },
+    { t: "2. Sua conta", p: [
+        "Para criar uma conta é preciso ter pelo menos 14 anos. Informe dados verdadeiros e guarde a sua senha: você é responsável por tudo o que acontece na sua conta."
+    ] },
+    { t: "3. O autor é o único responsável pela obra", p: [
+        "Tudo o que você publica (histórias, capítulos, capas, sinopses e comentários) é de responsabilidade exclusiva do autor. Ao publicar, você declara que a obra é sua ou que você tem autorização para usá-la, e que ela não viola direitos autorais nem direitos de terceiros.",
+        "O PORTAL NOVEL não escreve, não edita e não aprova previamente as obras publicadas. A obra continua sendo sua; você nos autoriza apenas a exibi-la no aplicativo, para os leitores, enquanto ela estiver publicada."
+    ] },
+    { t: "4. O que não é permitido", p: [
+        "Não é permitido publicar: conteúdo sexualmente explícito; qualquer conteúdo sexual envolvendo menores de 18 anos; apologia à violência, ao ódio ou à discriminação; conteúdo ilegal; plágio; spam; dados pessoais de outras pessoas sem autorização.",
+        "Histórias com temas maduros devem receber a classificação indicativa correta."
+    ] },
+    { t: "5. Comentários", p: [
+        "Comente com respeito. Ofensas, ameaças e assédio podem levar à remoção do comentário e à suspensão da conta."
+    ] },
+    { t: "6. Denúncias e remoção", p: [
+        "Qualquer pessoa pode denunciar uma obra ou um comentário. Podemos remover conteúdo que viole estes termos e suspender contas, com ou sem aviso prévio. Para denúncias, escreva para " + EMAIL_CONTATO + "."
+    ] },
+    { t: "7. Anúncios", p: [
+        "O PORTAL NOVEL poderá exibir anúncios para se manter gratuito para os leitores. Não clique nos anúncios para gerar ganhos e não peça para outras pessoas fazerem isso: cliques artificiais podem levar à suspensão da conta."
+    ] },
+    { t: "8. Mudanças e contato", p: [
+        "Podemos atualizar estes termos e, quando isso acontecer, a data abaixo será alterada. Dúvidas: " + EMAIL_CONTATO + ".",
+        "Responsável: " + NOME_RESPONSAVEL + ". Última atualização: " + DATA_TEXTOS + "."
+    ] }
+];
+
+var PRIVACIDADE = [
+    { t: "1. Quem é o responsável", p: [
+        "O PORTAL NOVEL é mantido por " + NOME_RESPONSAVEL + ". Contato sobre dados pessoais: " + EMAIL_CONTATO + "."
+    ] },
+    { t: "2. Quais dados coletamos", p: [
+        "Conta: e-mail, nome de usuário e senha (a senha é protegida e nunca fica visível para nós).",
+        "Perfil: foto e descrição, se você enviar.",
+        "Conteúdo: histórias, capítulos, capas, comentários e curtidas.",
+        "Uso: quais capítulos foram abertos (para o contador de leituras) e dados técnicos básicos do aparelho e do navegador."
+    ] },
+    { t: "3. Para que usamos os dados", p: [
+        "Para criar e manter a sua conta, exibir obras, comentários, curtidas e leituras, manter o serviço seguro, moderar conteúdo e cumprir obrigações legais."
+    ] },
+    { t: "4. Anúncios e cookies", p: [
+        "O PORTAL NOVEL poderá exibir anúncios do Google. O Google e seus parceiros podem usar cookies e identificadores para mostrar e medir anúncios. O app também guarda informações no seu aparelho, como preferências e textos ainda não salvos.",
+        "Você pode limpar esses dados nas configurações do navegador e gerenciar a personalização de anúncios na sua conta Google."
+    ] },
+    { t: "5. Com quem compartilhamos", p: [
+        "Não vendemos os seus dados. Eles são tratados pelos serviços que o app usa para funcionar, como hospedagem e banco de dados, e pelo Google, no caso dos anúncios. Também podemos informar autoridades quando a lei exigir.",
+        "O seu nome de usuário, o seu perfil e as suas obras publicadas são públicos."
+    ] },
+    { t: "6. Seus direitos", p: [
+        "Você pode pedir acesso, correção e exclusão dos seus dados, portabilidade, informações sobre o tratamento e a retirada do seu consentimento, escrevendo para " + EMAIL_CONTATO + "."
+    ] },
+    { t: "7. Por quanto tempo guardamos", p: [
+        "Enquanto a sua conta existir. Ao excluir a conta, apagamos os seus dados, exceto o que precisarmos guardar por obrigação legal."
+    ] },
+    { t: "8. Idade mínima", p: [
+        "O serviço é para pessoas com 14 anos ou mais. Histórias com classificação de 18 anos são destinadas a maiores de 18 anos."
+    ] },
+    { t: "9. Mudanças nesta política", p: [
+        "Podemos atualizar esta política, e a data abaixo mostra a última versão. Última atualização: " + DATA_TEXTOS + "."
+    ] }
+];
+
+function desenharLegal(idArea, titulo, secoes) {
+    var area = pegar(idArea);
+    area.innerHTML = "";
+    area.appendChild(criar("h1", "", titulo));
+    secoes.forEach(function (secao) {
+        area.appendChild(criar("h2", "", secao.t));
+        secao.p.forEach(function (paragrafo) {
+            area.appendChild(criar("p", "", paragrafo));
+        });
+    });
+}
+
+var modoLogin = "entrar";
+
+function trocarAba(modo) {
+    modoLogin = modo;
+    var criarConta = (modo === "criar");
+    pegar("abaEntrar").classList.toggle("ativo", !criarConta);
+    pegar("abaCriar").classList.toggle("ativo", criarConta);
+    pegar("campoNome").style.display = criarConta ? "block" : "none";
+    pegar("blocoAceite").style.display = criarConta ? "flex" : "none";
+    pegar("btnLogin").textContent = criarConta ? "Criar conta" : "Entrar";
+    pegar("avisoLogin").textContent = "";
+}
+
+function traduzirErro(m) {
+    m = (m || "").toLowerCase();
+    if (m.indexOf("sem conexão") > -1) return "Sem conexão com o servidor. Verifique a internet e recarregue a página.";
+    if (m.indexOf("invalid login") > -1) return "E-mail ou senha incorretos.";
+    if (m.indexOf("already registered") > -1) return "Este e-mail já tem conta. Use Entrar.";
+    if (m.indexOf("rate limit") > -1) return "Muitas tentativas. Espere um pouco.";
+    if (m.indexOf("not confirmed") > -1) return "Confirme o seu e-mail antes de entrar.";
+    return "Não foi possível concluir: " + m;
+}
+
+async function enviarLogin() {
+    var email = pegar("email").value.trim();
+    var senha = pegar("senha").value;
+    var usuario = pegar("nomeUsuario").value.trim().toLowerCase();
+
+    if (modoLogin === "criar" && !/^[a-z0-9_.]{3,20}$/.test(usuario)) {
+        aviso("avisoLogin", "Usuário: de 3 a 20 caracteres (letras sem acento, números, _ ou ponto).", true);
+        return;
+    }
+    if (email.indexOf("@") === -1) {
+        aviso("avisoLogin", "Digite um e-mail válido.", true);
+        return;
+    }
+    if (senha.length < 6) {
+        aviso("avisoLogin", "A senha precisa ter pelo menos 6 caracteres.", true);
+        return;
+    }
+    if (modoLogin === "criar" && !pegar("aceito").checked) {
+        aviso("avisoLogin", "Para criar a conta, aceite os Termos de Uso e a Política de Privacidade.", true);
+        return;
+    }
+
+    aviso("avisoLogin", "Aguarde...", false);
+
+    if (modoLogin === "criar") {
+        var r = await db.auth.signUp({ email: email, password: senha, options: { data: { usuario: usuario } } });
+        if (r.error) { aviso("avisoLogin", traduzirErro(r.error.message), true); return; }
+        if (!r.data.session) {
+            aviso("avisoLogin", "Conta criada! Confirme o e-mail que enviamos e depois toque em Entrar.", false);
+            return;
+        }
+        var p = await db.from("perfis").upsert({ id: r.data.user.id, nome: usuario, usuario: usuario });
+        if (p.error) {
+            var usado = p.error.code === "23505";
+            aviso("avisoLogin", usado ? "Conta criada, mas esse nome de usuário já existe. Escolha outro em Editar perfil." : "Conta criada, mas o perfil não foi salvo.", true);
+            return;
+        }
+    } else {
+        var e = await db.auth.signInWithPassword({ email: email, password: senha });
+        if (e.error) { aviso("avisoLogin", traduzirErro(e.error.message), true); return; }
+    }
+
+    location.hash = "perfil";
+}
+
+function voltarTela() {
+    if (history.length > 1) history.back();
+    else location.hash = "perfil";
+}
+
+desenharLegal("textoTermos", "Termos de Uso", TERMOS);
+desenharLegal("textoPrivacidade", "Política de Privacidade", PRIVACIDADE);
+
+/* =====================================================
+   PUBLICAR A HISTÓRIA: DECLARAÇÃO DO AUTOR
+   Depois de publicada a história, cada capítulo é publicado na lista de capítulos.
+===================================================== */
+var DECLARACAO = [
+    "Sou o autor desta obra, ou tenho autorização para publicá-la.",
+    "A obra não é plágio e não viola direitos autorais nem direitos de terceiros.",
+    "A obra não tem conteúdo sexual explícito, nem conteúdo sexual envolvendo menores de 18 anos, e a classificação indicativa está correta.",
+    "Sou o único responsável pelo conteúdo da obra e sei que o PORTAL NOVEL pode removê-la se ela violar os Termos de Uso."
+];
+
+function montarDeclaracao() {
+    var area = pegar("listaDecl");
+    DECLARACAO.forEach(function (texto) {
+        var rotulo = criar("label", "decl");
+        var caixa = document.createElement("input");
+        caixa.type = "checkbox";
+        caixa.name = "decl";
+        rotulo.appendChild(caixa);
+        rotulo.appendChild(criar("span", "", texto));
+        area.appendChild(rotulo);
+    });
+}
+
+function prepararPublicar() {
+    var h = minhaHistoria;
+    var caixas = document.querySelectorAll('input[name="decl"]');
+    for (var i = 0; i < caixas.length; i++) caixas[i].checked = false;
+
+    if (!usuarioLogado || !h) {
+        pegar("pubTitulo").textContent = "Sem história";
+        pegar("pubResumo").textContent = "";
+        pegar("btnDespublicar").style.display = "none";
+        aviso("avisoPub", usuarioLogado ? "Crie a sua história antes de publicar." : "Entre na sua conta para publicar.", true);
+        return;
+    }
+
+    pegar("pubTitulo").textContent = h.titulo || "Sem título";
+
+    var classificacao = "não escolhida";
+    if (h.idade === "livre") classificacao = "Livre";
+    else if (h.idade) classificacao = h.idade + " anos";
+
+    var total = meusCapitulos.length;
+    var publicados = meusCapitulos.filter(function (c) { return c.publicado; }).length;
+    pegar("pubResumo").textContent = total + (total === 1 ? " capítulo" : " capítulos") + " (" + publicados + " publicados) · Classificação: " + classificacao + " · " + (h.publicada ? "História publicada" : "História em rascunho");
+
+    pegar("btnDespublicar").style.display = h.publicada ? "block" : "none";
+
+    if (h.publicada && h.aceite_autor) aviso("avisoPub", "Declaração confirmada em " + dataBonita(h.aceite_autor.data) + ". Publique cada capítulo na lista de capítulos.", false);
+    else pegar("avisoPub").textContent = "";
+}
+
+async function confirmarPublicar() {
+    var h = minhaHistoria;
+
+    if (!usuarioLogado || !h || !h.titulo) {
+        aviso("avisoPub", usuarioLogado ? "Dê um título à história em Informações da história." : "Entre na sua conta para publicar.", true);
+        return;
+    }
+    if (!h.idade) {
+        aviso("avisoPub", "Escolha a classificação indicativa em Informações da história.", true);
+        return;
+    }
+    if (!meusCapitulos.length) {
+        aviso("avisoPub", "Escreva pelo menos um capítulo antes de publicar.", true);
+        return;
+    }
+
+    var caixas = document.querySelectorAll('input[name="decl"]');
+    for (var i = 0; i < caixas.length; i++) {
+        if (!caixas[i].checked) {
+            aviso("avisoPub", "Confirme todos os itens da declaração para publicar.", true);
+            return;
+        }
+    }
+
+    aviso("avisoPub", "Publicando...", false);
+    var r = await db.from("historias").update({ publicada: true, aceite_autor: { data: new Date().toISOString(), versao: DATA_TEXTOS } }).eq("id", h.id).select().single();
+
+    if (r.error) {
+        aviso("avisoPub", "Não foi possível publicar. Tente de novo.", true);
+        return;
+    }
+
+    minhaHistoria = r.data;
+    ultimaCargaHist = 0;
+    prepararPublicar();
+    aviso("avisoPub", "História publicada! Agora, na lista de capítulos, toque em Publicar em cada capítulo que os leitores devem ver.", false);
+}
+
+async function despublicarHistoria() {
+    if (!minhaHistoria) return;
+    if (!confirm("Despublicar a história? Ela some para os leitores, mas continua na sua conta.")) return;
+
+    var r = await db.from("historias").update({ publicada: false }).eq("id", minhaHistoria.id).select().single();
+    if (r.error) {
+        aviso("avisoPub", "Não foi possível despublicar. Tente de novo.", true);
+        return;
+    }
+    minhaHistoria = r.data;
+    ultimaCargaHist = 0;
+    prepararPublicar();
+    aviso("avisoPub", "História despublicada.", false);
+}
+
+/* =====================================================
+   CURTIR, COMENTAR E DENUNCIAR (tudo na conta)
+===================================================== */
+var MOTIVOS = [
+    "Conteúdo sexual explícito",
+    "Conteúdo sexual envolvendo menores de 18 anos",
+    "Plágio ou violação de direitos autorais",
+    "Violência, ódio ou discriminação",
+    "Spam ou golpe",
+    "Outro motivo"
+];
+var alvoDenuncia = null;
+
+function desenharAcoes() {
+    var area = pegar("blocoAcoes");
+    if (!area) return;
+    area.innerHTML = "";
+    var e = estadoCurtida;
+
+    var curtir = criar("button", "btn mini" + (e.curtiu ? "" : " claro"), (e.curtiu ? "♥ Curtido" : "♡ Curtir") + " · " + e.n);
+    curtir.addEventListener("click", alternarCurtida);
+
+    var denunciar = criar("button", "btn claro mini", "Denunciar");
+    denunciar.addEventListener("click", function () { abrirDenuncia("historia", e.id, null, e.titulo); });
+
+    area.appendChild(curtir);
+    area.appendChild(denunciar);
+}
+
+async function alternarCurtida() {
+    var e = estadoCurtida;
+    if (e.ocupado) return;
+
+    if (!usuarioLogado) {
+        aviso("avisoAcoes", "Entre na sua conta para curtir.", true);
+        return;
+    }
+
+    e.ocupado = true;
+    var r;
+    if (e.curtiu) {
+        r = await db.from("curtidas").delete().eq("historia_id", e.id).eq("usuario_id", usuarioLogado.id);
+        if (!r.error) { e.curtiu = false; e.n = Math.max(0, e.n - 1); }
+    } else {
+        r = await db.from("curtidas").insert({ historia_id: e.id, usuario_id: usuarioLogado.id });
+        if (!r.error) { e.curtiu = true; e.n = e.n + 1; }
+    }
+    e.ocupado = false;
+
+    if (r.error) aviso("avisoAcoes", "Não foi possível curtir agora.", true);
+    else pegar("avisoAcoes").textContent = "";
+    desenharAcoes();
+}
+
+async function desenharComentarios(id, titulo, token) {
+    var area = pegar("blocoComentarios");
+    if (!area) return;
+    area.innerHTML = "";
+
+    var cabecalho = criar("h2", "", "Comentários");
+    area.appendChild(cabecalho);
+
+    var caixa = criar("div", "bloco");
+    var campo = document.createElement("textarea");
+    campo.id = "campoComentario";
+    campo.rows = 3;
+    campo.maxLength = 500;
+    campo.placeholder = "Escreva um comentário respeitoso...";
+    caixa.appendChild(campo);
+
+    var enviar = criar("button", "btn", "Comentar");
+    enviar.style.width = "100%";
+    enviar.addEventListener("click", function () { publicarComentario(id, titulo, enviar); });
+    caixa.appendChild(enviar);
+
+    var avisoCom = criar("p", "aviso");
+    avisoCom.id = "avisoComentario";
+    caixa.appendChild(avisoCom);
+    area.appendChild(caixa);
+
+    var lista = criar("div");
+    lista.appendChild(criar("p", "vazio", "Carregando comentários..."));
+    area.appendChild(lista);
+
+    var r = await db.from("comentarios").select("id,usuario_id,texto,criado_em").eq("historia_id", id).order("criado_em", { ascending: false }).limit(50);
+    if (token !== tokenRota) return;
+    lista.innerHTML = "";
+
+    if (r.error) {
+        lista.appendChild(criar("p", "vazio", "Não foi possível carregar os comentários."));
+        return;
+    }
+
+    var itens = r.data || [];
+    cabecalho.textContent = "Comentários (" + itens.length + ")";
+    await carregarNomes(itens.map(function (c) { return c.usuario_id; }));
+    if (token !== tokenRota) return;
+
+    if (!itens.length) {
+        lista.appendChild(criar("p", "vazio", "Ainda não há comentários. Seja o primeiro."));
+        return;
+    }
+
+    itens.forEach(function (c) {
+        var item = criar("div", "bloco comentario");
+        item.appendChild(criar("strong", "", NOMES[c.usuario_id] || "Leitor"));
+        item.appendChild(criar("span", "ajuda", " · " + dataBonita(c.criado_em)));
+        item.appendChild(criar("p", "", c.texto));
+
+        var botoes = criar("div", "botoes");
+
+        var denunciar = criar("button", "btn claro mini", "Denunciar");
+        denunciar.addEventListener("click", function () { abrirDenuncia("comentario", id, c.id, titulo); });
+        botoes.appendChild(denunciar);
+
+        if (usuarioLogado && c.usuario_id === usuarioLogado.id) {
+            var apagar = criar("button", "btn perigo mini", "Apagar");
+            apagar.addEventListener("click", function () { apagarComentario(id, titulo, c.id); });
+            botoes.appendChild(apagar);
+        }
+
+        item.appendChild(botoes);
+        lista.appendChild(item);
+    });
+}
+
+async function publicarComentario(id, titulo, botao) {
+    var texto = pegar("campoComentario").value.trim();
+
+    if (!usuarioLogado) {
+        aviso("avisoComentario", "Entre na sua conta para comentar.", true);
+        return;
+    }
+    if (!texto) {
+        aviso("avisoComentario", "Escreva algo antes de comentar.", true);
+        return;
+    }
+
+    botao.disabled = true;
+    var r = await db.from("comentarios").insert({ historia_id: id, usuario_id: usuarioLogado.id, texto: texto });
+    botao.disabled = false;
+
+    if (r.error) {
+        aviso("avisoComentario", "Não foi possível enviar o comentário.", true);
+        return;
+    }
+    desenharComentarios(id, titulo, tokenRota);
+}
+
+async function apagarComentario(id, titulo, comentarioId) {
+    if (!confirm("Apagar este comentário?")) return;
+    await db.from("comentarios").delete().eq("id", comentarioId);
+    desenharComentarios(id, titulo, tokenRota);
+}
+
+function abrirDenuncia(tipo, historiaId, comentarioId, titulo) {
+    alvoDenuncia = { tipo: tipo, historiaId: historiaId, comentarioId: comentarioId, titulo: titulo || "" };
+    location.hash = "denunciar";
+}
+
+function montarMotivos() {
+    var area = pegar("listaMotivos");
+    MOTIVOS.forEach(function (texto) {
+        var rotulo = criar("label", "decl");
+        var opcao = document.createElement("input");
+        opcao.type = "radio";
+        opcao.name = "motivo";
+        opcao.value = texto;
+        rotulo.appendChild(opcao);
+        rotulo.appendChild(criar("span", "", texto));
+        area.appendChild(rotulo);
+    });
+}
+
+function prepararDenuncia() {
+    if (!alvoDenuncia) {
+        location.hash = "inicio";
+        return;
+    }
+
+    var nome = alvoDenuncia.titulo;
+    pegar("denAlvo").textContent = (alvoDenuncia.tipo === "comentario")
+        ? "Você está denunciando um comentário na história “" + nome + "”."
+        : "Você está denunciando a história “" + nome + "”.";
+
+    var opcoes = document.querySelectorAll('input[name="motivo"]');
+    for (var i = 0; i < opcoes.length; i++) opcoes[i].checked = false;
+
+    pegar("denDetalhes").value = "";
+    pegar("avisoDen").textContent = "";
+}
+
+async function enviarDenuncia() {
+    var opcoes = document.querySelectorAll('input[name="motivo"]');
+    var motivo = "";
+    for (var i = 0; i < opcoes.length; i++) {
+        if (opcoes[i].checked) motivo = opcoes[i].value;
+    }
+
+    if (!usuarioLogado) {
+        aviso("avisoDen", "Entre na sua conta para enviar a denúncia.", true);
+        return;
+    }
+    if (!motivo) {
+        aviso("avisoDen", "Escolha o motivo da denúncia.", true);
+        return;
+    }
+
+    var r = await db.from("denuncias").insert({
+        usuario_id: usuarioLogado.id,
+        historia_id: alvoDenuncia.historiaId,
+        comentario_id: alvoDenuncia.comentarioId,
+        motivo: motivo,
+        detalhes: pegar("denDetalhes").value.trim()
+    });
+
+    if (r.error) {
+        aviso("avisoDen", "Não foi possível registrar a denúncia. Tente de novo.", true);
+        return;
+    }
+
+    aviso("avisoDen", "Denúncia registrada. Obrigado por ajudar a manter o PORTAL NOVEL seguro.", false);
+}
+
+/* =====================================================
+   LEITURA DE CAPÍTULOS E CONTADOR DE LEITURAS
+   Uma leitura só conta depois de alguns segundos no capítulo, e uma vez por visita ao app.
+===================================================== */
+var SEGUNDOS_PARA_CONTAR = 10;
+var leituraAtual = null;
+var relogioLeitura = null;
+var contadas = {};
+
+function atualizarContadorLeitura() {
+    pegar("lerContador").textContent = rotuloLeituras((leituraAtual && leituraAtual.total) || 0) + " neste capítulo";
+}
+
+async function prepararLeitor(token) {
+    clearTimeout(relogioLeitura);
+
+    if (!leituraAtual) {
+        location.hash = "inicio";
+        return;
+    }
+
+    pegar("lerHistoria").textContent = "Carregando...";
+    pegar("lerTitulo").textContent = "";
+    pegar("lerTexto").innerHTML = "";
+    pegar("lerNavegacao").innerHTML = "";
+    pegar("lerContador").textContent = "";
+
+    var h = await buscarHistoria(leituraAtual.id);
+    if (token !== tokenRota) return;
+
+    var caps = h ? ((await listarCapitulos(h.id, true, false)) || []) : [];
+    if (token !== tokenRota) return;
+
+    var n = leituraAtual.n;
+    if (!h || !(n >= 1 && n <= caps.length)) {
+        location.hash = h ? "livro-" + h.id : "inicio";
+        return;
+    }
+
+    var rc = await db.from("capitulos").select("id,titulo,texto").eq("id", caps[n - 1].id).maybeSingle();
+    if (token !== tokenRota) return;
+    if (!rc.data) {
+        location.hash = "livro-" + h.id;
+        return;
+    }
+
+    var c = rc.data;
+    leituraAtual.idCap = c.id;
+    var mapa = await contagemLeituras([c.id]);
+    if (token !== tokenRota) return;
+    leituraAtual.total = mapa[c.id] || 0;
+
+    pegar("lerHistoria").textContent = h.titulo + " · Capítulo " + n + " de " + caps.length;
+    pegar("lerTitulo").textContent = c.titulo || ("Capítulo " + n);
+
+    var area = pegar("lerTexto");
+    area.innerHTML = "";
+    var pref = lerConfig();
+    area.className = "leitura-texto tam-" + pref.tamanho + " fonte-" + pref.fonte;
+    var linhas = (c.texto || "").split("\n");
+    var escreveu = false;
+    linhas.forEach(function (linha) {
+        if (linha.trim()) {
+            area.appendChild(criar("p", "", linha));
+            escreveu = true;
+        }
+    });
+    if (!escreveu) area.appendChild(criar("p", "", "Este capítulo ainda está vazio."));
+
+    atualizarContadorLeitura();
+    mostrarBanner(h);
+    iniciarContagemDeTempo(h);
+
+    var nav = pegar("lerNavegacao");
+    nav.innerHTML = "";
+    if (n > 1) {
+        var anterior = criar("button", "btn claro", "← Anterior");
+        anterior.addEventListener("click", function () { location.hash = "ler-" + h.id + "-" + (n - 1); });
+        nav.appendChild(anterior);
+    }
+    if (n < caps.length) {
+        var proximo = criar("button", "btn", "Próximo →");
+        proximo.addEventListener("click", function () { irParaProximo(h, n); });
+        nav.appendChild(proximo);
+    } else {
+        var fim = criar("button", "btn claro", "Fim · Voltar à história");
+        fim.addEventListener("click", voltarDaLeitura);
+        nav.appendChild(fim);
+    }
+
+    var chave = h.id + "-" + c.id;
+    if (!contadas[chave]) {
+        relogioLeitura = setTimeout(async function () {
+            var r = await db.from("leituras").insert({ capitulo_id: c.id, usuario_id: usuarioLogado ? usuarioLogado.id : null });
+            if (!r.error) {
+                contadas[chave] = true;
+                if (leituraAtual && leituraAtual.idCap === c.id) {
+                    leituraAtual.total = (leituraAtual.total || 0) + 1;
+                    atualizarContadorLeitura();
+                }
+            }
+        }, SEGUNDOS_PARA_CONTAR * 1000);
+    }
+}
+
+function voltarDaLeitura() {
+    location.hash = leituraAtual ? "livro-" + leituraAtual.id : "inicio";
+}
+
+/* =====================================================
+   ANÚNCIOS: BANNER NO FIM DO CAPÍTULO E VINHETA A CADA 30 MINUTOS
+   Por enquanto são só ESPAÇOS DE TESTE, sem anúncio de verdade.
+   - MINUTOS_PARA_VINHETA: tempo de leitura até a vinheta aparecer
+     (para testar rápido, troque 30 por 1).
+   - MOSTRAR_ESPACOS_DE_ANUNCIO: false esconde tudo.
+   Histórias com classificação de 18 anos nunca mostram anúncio.
+===================================================== */
+var MINUTOS_PARA_VINHETA = 30;
+var MOSTRAR_ESPACOS_DE_ANUNCIO = false;
+var tempoLido = lerDados(CH_TEMPO, 0);
+var relogioTempo = null;
+var depoisDaVinheta = null;
+
+function anunciosPermitidos(h) {
+    return MOSTRAR_ESPACOS_DE_ANUNCIO && h.idade !== "18";
+}
+
+function mostrarBanner(h) {
+    var area = pegar("espacoBanner");
+    area.innerHTML = "";
+
+    if (!anunciosPermitidos(h)) {
+        area.style.display = "none";
+        return;
+    }
+
+    area.style.display = "block";
+    area.appendChild(criar("p", "banner-rotulo", "Publicidade"));
+    area.appendChild(criar("div", "banner-caixa", "Espaço do banner"));
+}
+
+// Soma o tempo em que você está de fato na tela de leitura (não conta com o app em segundo plano)
+function iniciarContagemDeTempo(h) {
+    clearInterval(relogioTempo);
+    atualizarTesteVinheta(h);
+
+    relogioTempo = setInterval(function () {
+        if (document.hidden) return;
+        tempoLido = tempoLido + 5000;
+        gravar(CH_TEMPO, tempoLido);
+        atualizarTesteVinheta(h);
+    }, 5000);
+}
+
+function atualizarTesteVinheta(h) {
+    var linha = pegar("lerTesteVinheta");
+    if (!anunciosPermitidos(h)) {
+        linha.textContent = "";
+        return;
+    }
+    var falta = Math.ceil((MINUTOS_PARA_VINHETA * 60000 - tempoLido) / 60000);
+    linha.textContent = falta > 0
+        ? "(teste) Vinheta no próximo capítulo depois de mais " + falta + " min de leitura."
+        : "(teste) A vinheta aparece ao tocar em Próximo.";
+}
+
+function irParaProximo(h, n) {
+    var destino = "ler-" + h.id + "-" + (n + 1);
+
+    if (anunciosPermitidos(h) && tempoLido >= MINUTOS_PARA_VINHETA * 60000) {
+        depoisDaVinheta = function () { location.hash = destino; };
+        pegar("vinheta").style.display = "flex";
+    } else {
+        location.hash = destino;
+    }
+}
+
+function fecharVinheta() {
+    pegar("vinheta").style.display = "none";
+    tempoLido = 0;
+    gravar(CH_TEMPO, 0);
+
+    var seguir = depoisDaVinheta;
+    depoisDaVinheta = null;
+    if (seguir) seguir();
+}
+
+/* =====================================================
+   PERFIL, PREFERÊNCIAS, NOTIFICAÇÕES E AJUDA
+   O perfil fica na conta (Supabase) e uma cópia neste aparelho.
+===================================================== */
+var fotoPerfil = "";
+
+var AJUDA = [
+    { t: "Como publico uma história?", p: [
+        "Entre na sua conta, toque em Escrever, preencha as informações da história e escreva os capítulos. Depois toque em Publicar história para confirmar a declaração do autor. Por fim, na lista de capítulos, toque em Publicar em cada capítulo que os leitores devem ver."
+    ] },
+    { t: "Posso publicar um capítulo por dia?", p: [
+        "Sim. Escreva os capítulos com antecedência e deixe-os como rascunho. Todo dia, toque em Publicar no capítulo que quer liberar."
+    ] },
+    { t: "Como denuncio um conteúdo?", p: [
+        "Na página da história ou em um comentário, toque em Denunciar, escolha o motivo e envie. É preciso estar com a conta."
+    ] },
+    { t: "Como mudo a minha foto e o meu nome?", p: [
+        "Abra o seu perfil e toque em Editar perfil."
+    ] },
+    { t: "Quais dados o app guarda?", p: [
+        "Veja a Política de Privacidade, no menu do perfil. Lá também está como pedir a exclusão dos seus dados."
+    ] },
+    { t: "Ainda precisa de ajuda?", p: [
+        "Escreva para " + EMAIL_CONTATO + ". Vamos responder assim que possível."
+    ] }
+];
+
+function lerPerfil() {
+    var p = lerDados(CH_PERFIL, {});
+    return { nome: p.nome || "", usuario: p.usuario || "", sobre: p.sobre || "", foto: p.foto || "" };
+}
+
+function lerConfig() {
+    var c = lerDados(CH_CONFIG, {});
+    var n = c.notif || {};
+    return {
+        tema: c.tema || "auto",
+        tamanho: c.tamanho || "m",
+        fonte: c.fonte || "serifa",
+        notif: { comentarios: n.comentarios !== false, curtidas: n.curtidas !== false, capitulos: n.capitulos !== false }
+    };
+}
+
+function salvarConfig(c) {
+    return gravar(CH_CONFIG, c);
+}
+
+// ----- Modo escuro -----
+function aplicarTema() {
+    var tema = lerConfig().tema;
+    var escuro = false;
+    if (tema === "escuro") escuro = true;
+    else if (tema === "auto" && window.matchMedia) escuro = !!window.matchMedia("(prefers-color-scheme: dark)").matches;
+    document.body.classList.toggle("escuro", escuro);
+}
+
+// ----- Foto e nome nas telas -----
+function desenharAvatares() {
+    var p = lerPerfil();
+    var foto = imagemSegura(p.foto);
+    var inicial = p.nome ? p.nome.charAt(0).toUpperCase() : "👤";
+    var lista = document.querySelectorAll(".avatar");
+    for (var i = 0; i < lista.length; i++) {
+        if (foto) {
+            lista[i].style.backgroundImage = "url(" + foto + ")";
+            lista[i].textContent = "";
+        } else {
+            lista[i].style.backgroundImage = "";
+            lista[i].textContent = inicial;
+        }
+    }
+}
+
+function desenharPerfil() {
+    var p = lerPerfil();
+    pegar("perfilNome").textContent = p.nome || "Seu perfil";
+    pegar("perfilUsuario").textContent = p.usuario ? "@" + p.usuario : "Toque em Editar perfil para escolher seu nome";
+    pegar("perfilSobre").textContent = p.sobre;
+}
+
+// ----- Perfil e conta -----
+function mostrarFotoEdicao() {
+    var a = pegar("avatarEdicao");
+    var foto = imagemSegura(fotoPerfil);
+    if (foto) {
+        a.style.backgroundImage = "url(" + foto + ")";
+        a.textContent = "";
+    } else {
+        var nome = pegar("perfNome").value.trim();
+        a.style.backgroundImage = "";
+        a.textContent = nome ? nome.charAt(0).toUpperCase() : "?";
+    }
+}
+
+function prepararEditarPerfil() {
+    var p = lerPerfil();
+    pegar("perfNome").value = p.nome;
+    pegar("perfUsuario").value = p.usuario;
+    pegar("perfSobre").value = p.sobre;
+    fotoPerfil = p.foto;
+    mostrarFotoEdicao();
+    pegar("avisoPerfil").textContent = "";
+}
+
+pegar("campoFoto").addEventListener("change", function () {
+    var arquivo = this.files[0];
+    if (!arquivo) return;
+
+    var leitor = new FileReader();
+    leitor.onload = function () {
+        var img = new Image();
+        img.onload = function () {
+            // corta um quadrado no centro da imagem e reduz
+            var lado = Math.min(img.width, img.height);
+            var quadro = document.createElement("canvas");
+            quadro.width = 256;
+            quadro.height = 256;
+            quadro.getContext("2d").drawImage(img, (img.width - lado) / 2, (img.height - lado) / 2, lado, lado, 0, 0, 256, 256);
+            fotoPerfil = quadro.toDataURL("image/jpeg", 0.85);
+            mostrarFotoEdicao();
+        };
+        img.src = leitor.result;
+    };
+    leitor.readAsDataURL(arquivo);
+});
+
+function removerFoto() {
+    fotoPerfil = "";
+    mostrarFotoEdicao();
+}
+
+async function salvarPerfil() {
+    var nome = pegar("perfNome").value.trim();
+    var usuario = pegar("perfUsuario").value.trim().toLowerCase().replace(/^@/, "");
+    var sobre = pegar("perfSobre").value.trim();
+
+    if (usuario && !/^[a-z0-9_.]{3,20}$/.test(usuario)) {
+        aviso("avisoPerfil", "O nome de usuário precisa ter de 3 a 20 caracteres: letras sem acento, números, _ ou ponto.", true);
+        return;
+    }
+
+    if (!gravar(CH_PERFIL, { nome: nome, usuario: usuario, sobre: sobre, foto: fotoPerfil })) {
+        aviso("avisoPerfil", "Não foi possível salvar. Tente uma foto menor.", true);
+        return;
+    }
+
+    desenharAvatares();
+    desenharPerfil();
+
+    if (usuarioLogado) {
+        var r = await db.from("perfis").upsert({ id: usuarioLogado.id, nome: nome, usuario: usuario || null, sobre: sobre, foto: fotoPerfil || null });
+        if (r.error) {
+            aviso("avisoPerfil", r.error.code === "23505" ? "Esse nome de usuário já está em uso." : "Salvo aqui, mas não foi possível salvar na conta.", true);
+            return;
+        }
+        NOMES[usuarioLogado.id] = nome || usuario || "Autor";
+        aviso("avisoPerfil", "Perfil salvo na sua conta.", false);
+    } else {
+        aviso("avisoPerfil", "Perfil salvo neste aparelho. Entre na conta para guardá-lo online.", false);
+    }
+}
+
+function apagarDadosDoAparelho() {
+    if (!confirm("Apagar os dados deste aparelho (preferências e textos não salvos)? Suas histórias na conta continuam online.")) return;
+
+    try {
+        var chaves = [];
+        for (var i = 0; i < localStorage.length; i++) {
+            var chave = localStorage.key(i);
+            if (chave.indexOf("webnovel_") === 0) chaves.push(chave);
+        }
+        chaves.forEach(function (chave) { localStorage.removeItem(chave); });
+    } catch (erro) { }
+
+    location.hash = "inicio";
+    if (location.reload) location.reload();
+}
+
+// ----- Aparência e leitura -----
+function montarOpcoes(idArea, nome, lista, atual, aoEscolher) {
+    var area = pegar(idArea);
+    area.innerHTML = "";
+    lista.forEach(function (item) {
+        var rotulo = criar("label", "opcao");
+        var radio = document.createElement("input");
+        radio.type = "radio";
+        radio.name = nome;
+        radio.value = item[0];
+        radio.checked = (item[0] === atual);
+        radio.addEventListener("change", function () { aoEscolher(item[0]); });
+        rotulo.appendChild(radio);
+        rotulo.appendChild(document.createTextNode(" " + item[1]));
+        area.appendChild(rotulo);
+    });
+}
+
+function aplicarAmostra() {
+    var c = lerConfig();
+    pegar("lerAmostra").className = "leitura-texto amostra tam-" + c.tamanho + " fonte-" + c.fonte;
+}
+
+function prepararPreferencias() {
+    var c = lerConfig();
+
+    montarOpcoes("opcoesTema", "tema", [["auto", "Automático"], ["claro", "Claro"], ["escuro", "Escuro"]], c.tema, function (v) {
+        var x = lerConfig();
+        x.tema = v;
+        salvarConfig(x);
+        aplicarTema();
+    });
+
+    montarOpcoes("opcoesTamanho", "tamanho", [["p", "Pequeno"], ["m", "Médio"], ["g", "Grande"]], c.tamanho, function (v) {
+        var x = lerConfig();
+        x.tamanho = v;
+        salvarConfig(x);
+        aplicarAmostra();
+    });
+
+    montarOpcoes("opcoesFonte", "fonte", [["serifa", "Com serifa"], ["simples", "Simples"]], c.fonte, function (v) {
+        var x = lerConfig();
+        x.fonte = v;
+        salvarConfig(x);
+        aplicarAmostra();
+    });
+
+    aplicarAmostra();
+}
+
+// ----- Notificações -----
+function prepararNotificacoes() {
+    var c = lerConfig();
+    var area = pegar("listaNotif");
+    area.innerHTML = "";
+
+    [["comentarios", "Comentários nas minhas histórias"], ["curtidas", "Curtidas nas minhas histórias"], ["capitulos", "Novos capítulos de histórias que acompanho"]].forEach(function (item) {
+        var rotulo = criar("label", "decl");
+        var caixa = document.createElement("input");
+        caixa.type = "checkbox";
+        caixa.checked = c.notif[item[0]];
+        caixa.addEventListener("change", function () {
+            var x = lerConfig();
+            x.notif[item[0]] = caixa.checked;
+            salvarConfig(x);
+        });
+        rotulo.appendChild(caixa);
+        rotulo.appendChild(criar("span", "", item[1]));
+        area.appendChild(rotulo);
+    });
+}
+
+/* =====================================================
+   SESSÃO DA CONTA (Supabase)
+===================================================== */
+async function carregarPerfilDaConta() {
+    if (!usuarioLogado) return;
+    var r = await db.from("perfis").select("*").eq("id", usuarioLogado.id).maybeSingle();
+
+    if (r.data) {
+        NOMES[usuarioLogado.id] = r.data.nome || r.data.usuario || "Autor";
+        gravar(CH_PERFIL, { nome: r.data.nome || "", usuario: r.data.usuario || "", sobre: r.data.sobre || "", foto: r.data.foto || "" });
+        return;
+    }
+
+    // Conta sem perfil ainda (por exemplo, criada com confirmação de e-mail): cria agora
+    var meta = (usuarioLogado.user_metadata && usuarioLogado.user_metadata.usuario) || "";
+    if (meta && /^[a-z0-9_.]{3,20}$/.test(meta)) {
+        var n = await db.from("perfis").upsert({ id: usuarioLogado.id, nome: meta, usuario: meta });
+        if (!n.error) {
+            NOMES[usuarioLogado.id] = meta;
+            gravar(CH_PERFIL, { nome: meta, usuario: meta, sobre: "", foto: "" });
+        }
+    }
+}
+
+function atualizarBotaoConta() {
+    var b = pegar("btnConta");
+    var topoEntrar = pegar("btnEntrarTopo");
+    var topoAvatar = pegar("btnAvatarTopo");
+    var gaveta = pegar("drawerConta");
+
+    topoEntrar.style.display = usuarioLogado ? "none" : "inline-block";
+    topoAvatar.style.display = usuarioLogado ? "flex" : "none";
+
+    if (usuarioLogado) {
+        b.textContent = "Sair da conta";
+        b.setAttribute("href", "#perfil");
+        b.onclick = async function () { await db.auth.signOut(); };
+        gaveta.textContent = "🚪 Sair";
+        gaveta.setAttribute("href", "#perfil");
+        gaveta.onclick = async function () { fecharGaveta(); await db.auth.signOut(); };
+    } else {
+        b.textContent = "Entrar ou criar conta";
+        b.setAttribute("href", "#entrar");
+        b.onclick = null;
+        gaveta.textContent = "🔑 Entrar";
+        gaveta.setAttribute("href", "#entrar");
+        gaveta.onclick = fecharGaveta;
+    }
+}
+
+var idAnterior;
+
+db.auth.onAuthStateChange(function (evento, sessao) {
+    var novo = (sessao && sessao.user) ? sessao.user : null;
+    var novoId = novo ? novo.id : null;
+    usuarioLogado = novo;
+
+    // Só refaz as telas quando a pessoa muda (entrou ou saiu), não a cada renovação da sessão
+    if (novoId === idAnterior) return;
+    idAnterior = novoId;
+
+    setTimeout(async function () {
+        if (!novoId) {
+            gravar(CH_PERFIL, {});
+            minhaHistoria = null;
+            meusCapitulos = [];
+        }
+        atualizarBotaoConta();
+        await carregarPerfilDaConta();
+        await carregarMinhaHistoria();
+        ultimaCargaHist = 0;
+        rota();
+    }, 0);
+});
+
+desenharLegal("textoAjuda", "Ajuda e suporte", AJUDA);
+pegar("linkSuporte").href = "mailto:" + EMAIL_CONTATO;
+
+montarMotivos();
+montarDeclaracao();
+montarGeneros();
+montarPartes();
+desenharChips("chipsInicio", "inicio");
+desenharChips("chips", "busca");
+rota();
+if (semConexao) mostrarErroNaTela("Não foi possível carregar o servidor. Verifique a internet e recarregue a página.");
+
+/* =====================================================
+   APP INSTALÁVEL (PWA)
+   Precisa dos arquivos manifest.json, sw.js e dos ícones na mesma pasta do index.html.
+===================================================== */
+var eventoInstalar = null;
+
+function jaInstalado() {
+    return (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || window.navigator.standalone === true;
+}
+
+if ("serviceWorker" in navigator && location.protocol.indexOf("http") === 0) {
+    window.addEventListener("load", function () {
+        navigator.serviceWorker.register("sw.js").catch(function () { });
+    });
+}
+
+window.addEventListener("beforeinstallprompt", function (e) {
+    e.preventDefault();
+    eventoInstalar = e;
+    if (!jaInstalado()) {
+        pegar("textoInstalar").textContent = "Adicione o Portal Novel à tela inicial do seu celular e abra como um aplicativo.";
+        pegar("btnInstalar").style.display = "block";
+        pegar("blocoInstalar").style.display = "block";
+    }
+});
+
+window.addEventListener("appinstalled", function () {
+    eventoInstalar = null;
+    pegar("blocoInstalar").style.display = "none";
+});
+
+// iPhone/iPad não tem botão de instalar: o jeito é pelo menu Compartilhar do Safari
+if (/iphone|ipad|ipod/i.test(navigator.userAgent) && !jaInstalado()) {
+    pegar("textoInstalar").textContent = "No iPhone: toque em Compartilhar (quadrado com seta) e depois em Adicionar à Tela de Início.";
+    pegar("btnInstalar").style.display = "none";
+    pegar("blocoInstalar").style.display = "block";
+}
+
+async function instalarApp() {
+    if (!eventoInstalar) return;
+    eventoInstalar.prompt();
+    try { await eventoInstalar.userChoice; } catch (erro) { }
+    eventoInstalar = null;
+    pegar("blocoInstalar").style.display = "none";
+}
+
+</script>
+
+</body>
+</html>
