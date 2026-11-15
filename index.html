@@ -153,6 +153,10 @@ body.escuro .selo.ok { background: #1F3A2A; color: #8FD6A9; }
 .livro-capa { width: 180px; height: 240px; margin: 6px auto 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.2); font-size: 16px; }
 .livro h1 { font-size: 24px; text-align: center; }
 .livro .autor { text-align: center; color: var(--text-secondary); margin: 4px 0 12px; }
+.selo-fundador { width: 18px; height: 18px; vertical-align: -3px; margin-left: 5px; }
+.selo-linha { display: flex; align-items: center; gap: 12px; margin: 10px 0 0; }
+.selo-linha img { width: 56px; height: 56px; }
+.selo-linha strong { display: block; }
 .livro .chips { justify-content: center; }
 .livro p.sinopse { line-height: 1.6; margin-top: 10px; }
 .livro .bloco { text-align: left; }
@@ -331,6 +335,7 @@ window.addEventListener("unhandledrejection", function (e) {
                 <button class="avatar" aria-label="Foto do perfil" onclick="location.hash='editarperfil'">👤</button>
                 <h2 id="perfilNome">Seu perfil</h2>
                 <p class="ajuda" id="perfilUsuario" style="margin:2px 0 0"></p>
+                <div id="perfilSelo"></div>
                 <p id="perfilSobre" style="margin:10px 0 0;color:var(--text-secondary);line-height:1.5"></p>
             </div>
             <div class="profile-stats">
@@ -366,7 +371,7 @@ window.addEventListener("unhandledrejection", function (e) {
             <p class="ajuda" id="textoInstalar">Adicione o Portal Novel à tela inicial do seu celular e abra como um aplicativo.</p>
             <button type="button" class="btn" id="btnInstalar" style="width:100%" onclick="instalarApp()">Instalar o Portal Novel</button>
         </div>
-        <p class="ajuda" style="text-align:center;margin-top:16px">Portal Novel · versão 10.11-c</p>
+        <p class="ajuda" style="text-align:center;margin-top:16px">Portal Novel · versão 10.15-a</p>
     </section>
 
     <!-- LIVRO (serve para qualquer história) -->
@@ -626,6 +631,17 @@ window.addEventListener("unhandledrejection", function (e) {
             <p id="avisoPerfil" class="aviso" aria-live="polite"></p>
         </div>
 
+        <div class="bloco" id="blocoFundador">
+            <h3>Selo Escritor Fundador</h3>
+            <div id="fundadorAtual"></div>
+            <div id="fundadorResgate">
+                <p class="ajuda">Recebeu um convite? Digite o código para ganhar o selo.</p>
+                <input type="text" id="campoConvite" maxlength="20" autocapitalize="characters" autocomplete="off" placeholder="PN-XXXXXXXX">
+                <button type="button" class="btn" style="width:100%;margin-top:10px" onclick="resgatarConvite()">Resgatar selo</button>
+                <p id="avisoConvite" class="aviso" aria-live="polite"></p>
+            </div>
+        </div>
+
         <div class="bloco">
             <h3>Dados deste aparelho</h3>
             <p class="ajuda">Apaga o que o app guardou aqui: preferências e textos não salvos. As histórias e capítulos da sua conta continuam online. Não dá para desfazer.</p>
@@ -707,6 +723,7 @@ function criarBancoVazio() {
     }
     return {
         from: cadeia,
+        rpc: async function () { return falha; },
         auth: {
             onAuthStateChange: function (f) { setTimeout(function () { f("INITIAL_SESSION", null); }, 0); return { data: { subscription: {} } }; },
             signUp: async function () { return { data: {}, error: { message: "sem conexão" } }; },
@@ -747,6 +764,7 @@ var GENEROS = [
 var TELAS = ["inicio", "buscar", "biblioteca", "escrever", "avisos", "perfil", "configuracoes", "livro", "nova", "capitulos", "editor", "entrar", "termos", "privacidade", "publicar", "denunciar", "ler", "editarperfil", "preferencias", "notificacoes", "ajuda"];
 
 var HISTORIAS = [];          // histórias publicadas (lista do início e da busca)
+var FUNDADORES = {};         // id do autor -> número do selo Fundador
 var NOMES = {};              // id do autor -> nome
 var erroListas = "";
 var ultimaCargaHist = 0;
@@ -869,6 +887,25 @@ async function carregarNomes(ids) {
     if (!faltam.length) return;
     var r = await db.from("perfis").select("id,nome,usuario").in("id", faltam);
     (r.data || []).forEach(function (p) { NOMES[p.id] = p.nome || p.usuario || "Autor"; });
+    await carregarFundadores(faltam);
+}
+
+async function carregarFundadores(ids) {
+    if (!ids || !ids.length) return;
+    try {
+        var f = await db.from("fundadores").select("user_id,numero").in("user_id", ids);
+        (f.data || []).forEach(function (x) { FUNDADORES[x.user_id] = x.numero; });
+    } catch (e) { }
+}
+
+function seloFundador(numero) {
+    var img = document.createElement("img");
+    img.src = "selos/selo-fundador-mini.svg";
+    img.className = "selo-fundador";
+    img.alt = "Escritor Fundador";
+    img.title = "Escritor Fundador nº " + numero + " de 30";
+    img.onerror = function () { img.remove(); };
+    return img;
 }
 
 function normalizar(h) {
@@ -1100,7 +1137,9 @@ async function mostrarLivro(id, token) {
     pintarCapa(capa, h);
     area.appendChild(capa);
     area.appendChild(criar("h1", "", h.titulo));
-    area.appendChild(criar("p", "autor", "por " + h.autor));
+    var pAutor = criar("p", "autor", "por " + h.autor);
+    if (FUNDADORES[h.autor_id]) pAutor.appendChild(seloFundador(FUNDADORES[h.autor_id]));
+    area.appendChild(pAutor);
 
     var chips = criar("div", "chips");
     GENEROS.forEach(function (g) {
@@ -1680,7 +1719,7 @@ window.addEventListener("hashchange", rota);
 ===================================================== */
 var NOME_RESPONSAVEL = "Tomazini";
 var EMAIL_CONTATO = "xegg.tmz@gmail.com";
-var DATA_TEXTOS = "10 de novembro de 2026";
+var DATA_TEXTOS = "15 de novembro de 2026";
 
 var TERMOS = [
     { t: "1. Aceite dos termos", p: [
@@ -1706,7 +1745,11 @@ var TERMOS = [
     { t: "7. Anúncios", p: [
         "O PORTAL NOVEL poderá exibir anúncios para se manter gratuito para os leitores. Não clique nos anúncios para gerar ganhos e não peça para outras pessoas fazerem isso: cliques artificiais podem levar à suspensão da conta."
     ] },
-    { t: "8. Mudanças e contato", p: [
+    { t: "8. Selos e programas para autores", p: [
+        "O PORTAL NOVEL pode conceder selos, como o de Escritor Fundador, que é dado por convite e não pode ser comprado. O selo é vitalício, mas pode ser retirado em caso de violação grave destes termos.",
+        "No futuro, o PORTAL NOVEL poderá criar programas de participação em receita de anúncios para alguns autores. Se isso acontecer, as regras (quem participa, como o valor é calculado, valor mínimo para saque e prazos) serão divulgadas com aviso prévio, e a participação dependerá de cumpri-las. Ter um selo não garante participação nem pagamento."
+    ] },
+    { t: "9. Mudanças e contato", p: [
         "Podemos atualizar estes termos e, quando isso acontecer, a data abaixo será alterada. Dúvidas: " + EMAIL_CONTATO + ".",
         "Responsável: " + NOME_RESPONSAVEL + ". Última atualização: " + DATA_TEXTOS + "."
     ] }
@@ -2046,7 +2089,9 @@ async function desenharComentarios(id, titulo, token) {
 
     itens.forEach(function (c) {
         var item = criar("div", "bloco comentario");
-        item.appendChild(criar("strong", "", NOMES[c.usuario_id] || "Leitor"));
+        var nomeCom = criar("strong", "", NOMES[c.usuario_id] || "Leitor");
+        if (FUNDADORES[c.usuario_id]) nomeCom.appendChild(seloFundador(FUNDADORES[c.usuario_id]));
+        item.appendChild(nomeCom);
         item.appendChild(criar("span", "ajuda", " · " + dataBonita(c.criado_em)));
         item.appendChild(criar("p", "", c.texto));
 
@@ -2430,6 +2475,54 @@ function desenharPerfil() {
     pegar("perfilNome").textContent = p.nome || "Seu perfil";
     pegar("perfilUsuario").textContent = p.usuario ? "@" + p.usuario : "Toque em Editar perfil para escolher seu nome";
     pegar("perfilSobre").textContent = p.sobre;
+    var areaSelo = pegar("perfilSelo");
+    areaSelo.innerHTML = "";
+    var num = usuarioLogado && FUNDADORES[usuarioLogado.id];
+    if (num) areaSelo.appendChild(blocoSeloGrande(num));
+}
+
+function blocoSeloGrande(num) {
+    var linha = criar("div", "selo-linha");
+    var img = document.createElement("img");
+    img.src = "selos/selo-fundador.svg";
+    img.alt = "Selo Escritor Fundador";
+    img.onerror = function () { img.remove(); };
+    linha.appendChild(img);
+    var t = criar("div", "");
+    t.appendChild(criar("strong", "", "Escritor Fundador"));
+    t.appendChild(criar("span", "ajuda", "Nº " + num + " de 30"));
+    linha.appendChild(t);
+    return linha;
+}
+
+function mostrarResgate() {
+    var num = usuarioLogado && FUNDADORES[usuarioLogado.id];
+    var atual = pegar("fundadorAtual");
+    atual.innerHTML = "";
+    if (num) atual.appendChild(blocoSeloGrande(num));
+    pegar("fundadorResgate").style.display = num ? "none" : "";
+    pegar("avisoConvite").textContent = "";
+}
+
+async function resgatarConvite() {
+    var aviso = pegar("avisoConvite");
+    function msg(texto, ok) { aviso.className = "aviso " + (ok ? "ok" : "erro"); aviso.textContent = texto; }
+    if (!usuarioLogado) { msg("Entre na sua conta para resgatar o código.", false); return; }
+    var codigo = pegar("campoConvite").value.trim().toUpperCase();
+    if (!codigo) { msg("Digite o código do convite.", false); return; }
+    var r = await db.rpc("resgatar_convite", { p_codigo: codigo });
+    if (r.error) {
+        var m = r.error.message || "";
+        if (m.indexOf("ja_fundador") !== -1) msg("Esta conta já tem o selo de Fundador.", false);
+        else if (m.indexOf("sem conex") !== -1) msg("Sem conexão. Tente de novo.", false);
+        else msg("Esse código não é válido ou já foi usado.", false);
+        return;
+    }
+    FUNDADORES[usuarioLogado.id] = r.data;
+    pegar("campoConvite").value = "";
+    mostrarResgate();
+    desenharPerfil();
+    msg("Parabéns! Você é o Escritor Fundador nº " + r.data + ".", true);
 }
 
 // ----- Perfil e conta -----
@@ -2454,6 +2547,7 @@ function prepararEditarPerfil() {
     fotoPerfil = p.foto;
     mostrarFotoEdicao();
     pegar("avisoPerfil").textContent = "";
+    mostrarResgate();
 }
 
 pegar("campoFoto").addEventListener("change", function () {
@@ -2607,6 +2701,7 @@ function prepararNotificacoes() {
 ===================================================== */
 async function carregarPerfilDaConta() {
     if (!usuarioLogado) return;
+    await carregarFundadores([usuarioLogado.id]);
     var r = await db.from("perfis").select("*").eq("id", usuarioLogado.id).maybeSingle();
 
     if (r.data) {
