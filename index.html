@@ -364,13 +364,15 @@ window.addEventListener("unhandledrejection", function (e) {
             <li><a href="#ajuda">Ajuda e suporte <small>›</small></a></li>
             <li><a href="#termos">Termos de Uso <small>›</small></a></li>
             <li><a href="#privacidade">Política de Privacidade <small>›</small></a></li>
+            <li><a href="#excluirconta">Excluir conta <small>›</small></a></li>
+            <li id="itemGestao" style="display:none"><a href="#gestao">Gestão <small>›</small></a></li>
         </ul>
         <div class="bloco" id="blocoInstalar" style="display:none;margin-top:16px">
             <h3>Instalar o app</h3>
             <p class="ajuda" id="textoInstalar">Adicione o Portal Novel à tela inicial do seu celular e abra como um aplicativo.</p>
             <button type="button" class="btn" id="btnInstalar" style="width:100%" onclick="instalarApp()">Instalar o Portal Novel</button>
         </div>
-        <p class="ajuda" style="text-align:center;margin-top:16px">Portal Novel · versão 10.15-b</p>
+        <p class="ajuda" style="text-align:center;margin-top:16px">Portal Novel · versão 10.16</p>
     </section>
 
     <!-- LIVRO (serve para qualquer história) -->
@@ -646,6 +648,12 @@ window.addEventListener("unhandledrejection", function (e) {
             <p class="ajuda">Apaga o que o app guardou aqui: preferências e textos não salvos. As histórias e capítulos da sua conta continuam online. Não dá para desfazer.</p>
             <button type="button" class="btn perigo" onclick="apagarDadosDoAparelho()">Apagar dados deste aparelho</button>
         </div>
+
+        <div class="bloco">
+            <h3>Excluir conta</h3>
+            <p class="ajuda">Apaga a sua conta e as suas histórias, de forma definitiva. Você confirma antes.</p>
+            <a class="btn perigo" href="#excluirconta">Excluir minha conta</a>
+        </div>
     </section>
 
     <!-- APARÊNCIA E LEITURA -->
@@ -685,6 +693,57 @@ window.addEventListener("unhandledrejection", function (e) {
         <button type="button" class="voltar" onclick="voltarTela()">← Voltar</button>
         <div id="textoAjuda"></div>
         <a class="btn" id="linkSuporte" href="#ajuda" style="width:100%">Escrever para o suporte</a>
+    </section>
+
+    <!-- EXCLUIR CONTA (endereço público: portalnovel.com.br/#excluirconta) -->
+    <section class="tela" id="tela-excluirconta">
+        <button type="button" class="voltar" onclick="voltarTela()">← Voltar</button>
+        <h2 style="margin-top:4px">Excluir conta</h2>
+
+        <div class="bloco">
+            <h3>O que será apagado</h3>
+            <p class="ajuda">• Seu perfil: nome, usuário, foto e texto “sobre você”.</p>
+            <p class="ajuda">• Todas as suas histórias e capítulos.</p>
+            <p class="ajuda">• Seus comentários e curtidas.</p>
+            <p class="ajuda">• Seu selo de Escritor Fundador, se tiver.</p>
+            <p class="ajuda">• Seu acesso: não será possível entrar de novo com esta conta.</p>
+            <h3 style="margin-top:14px">O que pode ficar</h3>
+            <p class="ajuda">As contagens de leituras ficam sem ligação com você, e guardamos só o que a lei exigir. Não dá para desfazer.</p>
+        </div>
+
+        <div class="bloco" id="excluirForm" style="display:none">
+            <h3>Confirmar exclusão</h3>
+            <label class="rot" for="excSenha">Sua senha</label>
+            <input type="password" id="excSenha" autocomplete="current-password" placeholder="Digite a senha da conta">
+            <label class="rot" for="excConfirma">Digite EXCLUIR para confirmar</label>
+            <input type="text" id="excConfirma" autocapitalize="characters" autocomplete="off" placeholder="EXCLUIR">
+            <button type="button" class="btn perigo" id="btnExcluirConta" style="width:100%;margin-top:14px" onclick="excluirMinhaConta()">Excluir minha conta para sempre</button>
+            <p id="avisoExcluir" class="aviso" aria-live="polite"></p>
+        </div>
+
+        <div class="bloco" id="excluirDeslogado" style="display:none">
+            <h3>Entre para excluir</h3>
+            <p class="ajuda">Para excluir a conta direto aqui, entre nela primeiro.</p>
+            <a class="btn" href="#entrar" style="width:100%">Entrar</a>
+        </div>
+
+        <div class="bloco">
+            <h3>Não consegue entrar?</h3>
+            <p class="ajuda">Peça a exclusão por e-mail, usando o mesmo e-mail do cadastro. Respondemos e apagamos os dados.</p>
+            <a class="btn claro" id="linkExcluirEmail" href="#excluirconta" style="width:100%">Pedir exclusão por e-mail</a>
+        </div>
+    </section>
+
+    <!-- GESTÃO (só administrador; a proteção real está nas regras do Supabase) -->
+    <section class="tela" id="tela-gestao">
+        <a class="voltar" href="#configuracoes">← Voltar</a>
+        <h2 style="margin-top:4px">Gestão</h2>
+        <p id="avisoGestao" class="aviso" aria-live="polite" style="margin-top:0"></p>
+        <div id="gestaoAcesso"></div>
+        <div id="gestaoCorpo" style="display:none">
+            <div class="genre-scroll" id="abasGestao"></div>
+            <div id="gestaoConteudo"></div>
+        </div>
     </section>
 
 </main>
@@ -760,7 +819,7 @@ var GENEROS = [
     { id: "fanfic", nome: "Fanfic" }
 ];
 
-var TELAS = ["inicio", "buscar", "biblioteca", "escrever", "avisos", "perfil", "configuracoes", "livro", "nova", "capitulos", "editor", "entrar", "termos", "privacidade", "publicar", "denunciar", "ler", "editarperfil", "preferencias", "notificacoes", "ajuda"];
+var TELAS = ["inicio", "buscar", "biblioteca", "escrever", "avisos", "perfil", "configuracoes", "livro", "nova", "capitulos", "editor", "entrar", "termos", "privacidade", "publicar", "denunciar", "ler", "editarperfil", "preferencias", "notificacoes", "ajuda", "excluirconta", "gestao"];
 
 var HISTORIAS = [];          // histórias publicadas (lista do início e da busca)
 var FUNDADORES = {};         // id do autor -> número do selo Fundador
@@ -1677,7 +1736,7 @@ function rota() {
     if (tela === "nova" || tela === "capitulos" || tela === "editor" || tela === "publicar") destaque = "escrever";
 
     var gaveta = destaque;
-    if (["editarperfil", "preferencias", "notificacoes", "ajuda", "termos", "privacidade"].indexOf(tela) !== -1) gaveta = "configuracoes";
+    if (["editarperfil", "preferencias", "notificacoes", "ajuda", "termos", "privacidade", "excluirconta", "gestao"].indexOf(tela) !== -1) gaveta = "configuracoes";
     var itens = document.querySelectorAll(".bottom-nav .nav-item, .drawer-menu a[data-tela]");
     for (var i = 0; i < itens.length; i++) {
         var alvoItem = itens[i].getAttribute("data-tela");
@@ -1702,6 +1761,8 @@ function rota() {
     if (tela === "editarperfil") prepararEditarPerfil();
     if (tela === "preferencias") prepararPreferencias();
     if (tela === "notificacoes") prepararNotificacoes();
+    if (tela === "excluirconta") prepararExcluirConta();
+    if (tela === "gestao") prepararGestao(token);
 
     atualizarRascunhos();
     aplicarTema();
@@ -1776,7 +1837,7 @@ var PRIVACIDADE = [
         "O seu nome de usuário, o seu perfil e as suas obras publicadas são públicos."
     ] },
     { t: "6. Seus direitos", p: [
-        "Você pode pedir acesso, correção e exclusão dos seus dados, portabilidade, informações sobre o tratamento e a retirada do seu consentimento, escrevendo para " + EMAIL_CONTATO + "."
+        "Você pode pedir acesso, correção e exclusão dos seus dados, portabilidade, informações sobre o tratamento e a retirada do seu consentimento, escrevendo para " + EMAIL_CONTATO + ". Você também pode excluir a sua conta direto no app, em Configurações › Excluir conta."
     ] },
     { t: "7. Por quanto tempo guardamos", p: [
         "Enquanto a sua conta existir. Ao excluir a conta, apagamos os seus dados, exceto o que precisarmos guardar por obrigação legal."
@@ -2766,6 +2827,7 @@ db.auth.onAuthStateChange(function (evento, sessao) {
         atualizarBotaoConta();
         await carregarPerfilDaConta();
         await carregarMinhaHistoria();
+        await verificarAdmin();
         ultimaCargaHist = 0;
         rota();
     }, 0);
@@ -2782,6 +2844,356 @@ desenharChips("chipsInicio", "inicio");
 desenharChips("chips", "busca");
 rota();
 if (semConexao) mostrarErroNaTela("Não foi possível carregar o servidor. Verifique a internet e recarregue a página.");
+
+
+/* =====================================================
+   EXCLUIR A PRÓPRIA CONTA
+   A exclusão acontece no Supabase (função excluir_minha_conta).
+===================================================== */
+function limparDadosLocais() {
+    try {
+        var chaves = [];
+        for (var i = 0; i < localStorage.length; i++) {
+            var chave = localStorage.key(i);
+            if (chave.indexOf("webnovel_") === 0) chaves.push(chave);
+        }
+        chaves.forEach(function (chave) { localStorage.removeItem(chave); });
+    } catch (erro) { }
+}
+
+function prepararExcluirConta() {
+    var logado = !!usuarioLogado;
+    pegar("excluirForm").style.display = logado ? "block" : "none";
+    pegar("excluirDeslogado").style.display = logado ? "none" : "block";
+    pegar("excSenha").value = "";
+    pegar("excConfirma").value = "";
+    pegar("avisoExcluir").textContent = "";
+    pegar("btnExcluirConta").disabled = false;
+    pegar("linkExcluirEmail").href = "mailto:" + EMAIL_CONTATO + "?subject=" +
+        encodeURIComponent("Pedido de exclusão de conta - Portal Novel") +
+        "&body=" + encodeURIComponent("Quero excluir a minha conta no Portal Novel.\n\nE-mail do cadastro:\nNome de usuário:");
+}
+
+async function excluirMinhaConta() {
+    if (!usuarioLogado) { aviso("avisoExcluir", "Entre na sua conta para excluir.", true); return; }
+
+    var senha = pegar("excSenha").value;
+    var conf = pegar("excConfirma").value.trim().toUpperCase();
+    if (!senha) { aviso("avisoExcluir", "Digite a sua senha.", true); return; }
+    if (conf !== "EXCLUIR") { aviso("avisoExcluir", "Digite EXCLUIR para confirmar.", true); return; }
+
+    var botao = pegar("btnExcluirConta");
+    botao.disabled = true;
+    aviso("avisoExcluir", "Conferindo a senha...", false);
+
+    var v = await db.auth.signInWithPassword({ email: usuarioLogado.email, password: senha });
+    if (v.error) {
+        aviso("avisoExcluir", "Senha incorreta.", true);
+        botao.disabled = false;
+        return;
+    }
+
+    if (!confirm("Última confirmação: excluir a sua conta e todas as suas histórias para sempre?")) {
+        aviso("avisoExcluir", "", false);
+        botao.disabled = false;
+        return;
+    }
+
+    aviso("avisoExcluir", "Excluindo...", false);
+    var r = await db.rpc("excluir_minha_conta");
+    if (r.error) {
+        if (window.console) console.error("excluir_minha_conta:", r.error);
+        aviso("avisoExcluir", "Não foi possível excluir agora. Tente de novo ou peça por e-mail.", true);
+        botao.disabled = false;
+        return;
+    }
+
+    try { await db.auth.signOut({ scope: "local" }); } catch (erro) { }
+    limparDadosLocais();
+    alert("Sua conta foi excluída.");
+    location.hash = "inicio";
+    if (location.reload) location.reload();
+}
+
+/* =====================================================
+   GESTÃO (só administrador)
+   Esta tela só mostra o que o Supabase entrega. Quem não é admin recebe "acesso negado" lá.
+===================================================== */
+var souAdmin = false;
+var abaGestao = "resumo";
+var GESTAO_MIN_CAPS = 5;       // "mais de 5 capítulos"
+var GESTAO_MIN_LEITURAS = 300; // mínimo de leituras no total
+
+async function verificarAdmin() {
+    souAdmin = false;
+    if (usuarioLogado) {
+        var r = await db.rpc("eh_admin");
+        souAdmin = !!(r && !r.error && r.data === true);
+    }
+    var item = pegar("itemGestao");
+    if (item) item.style.display = souAdmin ? "" : "none";
+}
+
+var adminErro = false;
+
+async function chamarAdmin(nome, args) {
+    var r = await db.rpc(nome, args || {});
+    adminErro = !!r.error;
+    if (r.error) {
+        aviso("avisoGestao", "Erro: " + (r.error.message || "tente de novo"), true);
+        return null;
+    }
+    aviso("avisoGestao", "", false);
+    return r.data;
+}
+
+async function prepararGestao(token) {
+    var acesso = pegar("gestaoAcesso");
+    var corpo = pegar("gestaoCorpo");
+    acesso.innerHTML = "";
+    corpo.style.display = "none";
+    pegar("avisoGestao").textContent = "";
+
+    if (!usuarioLogado) {
+        var b1 = criar("div", "bloco");
+        b1.appendChild(criar("p", "ajuda", "Entre na sua conta para continuar."));
+        var l1 = criar("a", "btn", "Entrar");
+        l1.href = "#entrar";
+        b1.appendChild(l1);
+        acesso.appendChild(b1);
+        return;
+    }
+
+    if (!souAdmin) await verificarAdmin();
+    if (token !== tokenRota) return;
+
+    if (!souAdmin) {
+        var b2 = criar("div", "bloco");
+        b2.appendChild(criar("p", "ajuda", "Acesso restrito."));
+        acesso.appendChild(b2);
+        return;
+    }
+
+    corpo.style.display = "block";
+    desenharAbasGestao();
+    abrirAbaGestao(abaGestao);
+}
+
+function desenharAbasGestao() {
+    var area = pegar("abasGestao");
+    area.innerHTML = "";
+    [["resumo", "Resumo"], ["denuncias", "Denúncias"], ["usuarios", "Usuários"], ["monetizacao", "Monetização"]].forEach(function (a) {
+        var chip = criar("button", "chip" + (a[0] === abaGestao ? " ativo" : ""), a[1]);
+        chip.type = "button";
+        chip.addEventListener("click", function () { abrirAbaGestao(a[0]); });
+        area.appendChild(chip);
+    });
+}
+
+async function abrirAbaGestao(aba) {
+    abaGestao = aba;
+    desenharAbasGestao();
+    var area = pegar("gestaoConteudo");
+    area.innerHTML = "";
+    area.appendChild(criar("p", "vazio", "Carregando..."));
+    if (aba === "resumo") await gestaoResumo();
+    if (aba === "denuncias") await gestaoDenuncias();
+    if (aba === "usuarios") await gestaoUsuarios("");
+    if (aba === "monetizacao") await gestaoMonetizacao();
+}
+
+function linhaInfo(rotulo, valor) {
+    var p = criar("p", "ajuda");
+    p.style.margin = "4px 0";
+    var forte = criar("strong", "", rotulo + ": ");
+    p.appendChild(forte);
+    p.appendChild(document.createTextNode(String(valor === null || valor === undefined || valor === "" ? "-" : valor)));
+    return p;
+}
+
+function botaoGestao(texto, classe, aoClicar) {
+    var b = criar("button", "btn mini " + classe, texto);
+    b.type = "button";
+    b.addEventListener("click", aoClicar);
+    return b;
+}
+
+async function gestaoResumo() {
+    var d = await chamarAdmin("admin_resumo");
+    var area = pegar("gestaoConteudo");
+    area.innerHTML = "";
+    if (!d) return;
+    var bloco = criar("div", "bloco");
+    bloco.appendChild(criar("h3", "", "Visão geral"));
+    bloco.appendChild(linhaInfo("Contas", d.usuarios));
+    bloco.appendChild(linhaInfo("Histórias publicadas", d.historias_publicadas));
+    bloco.appendChild(linhaInfo("Leituras no total", d.leituras));
+    bloco.appendChild(linhaInfo("Denúncias em aberto", d.denuncias_abertas));
+    bloco.appendChild(linhaInfo("Contas banidas", d.banidos));
+    area.appendChild(bloco);
+}
+
+async function gestaoDenuncias() {
+    var lista = await chamarAdmin("admin_denuncias");
+    var area = pegar("gestaoConteudo");
+    area.innerHTML = "";
+    if (!lista) return;
+    if (!lista.length) { area.appendChild(criar("p", "vazio", "Nenhuma denúncia.")); return; }
+
+    lista.forEach(function (d) {
+        var bloco = criar("div", "bloco");
+        var ehComentario = !!d.comentario_id;
+        var topo = criar("strong", "", (ehComentario ? "Comentário em: " : "História: ") + (d.historia_titulo || "(removida)"));
+        bloco.appendChild(topo);
+        bloco.appendChild(criar("span", "selo" + (d.resolvida ? " ok" : ""), d.resolvida ? "Resolvida" : "Aberta"));
+        bloco.appendChild(linhaInfo("Motivo", d.motivo));
+        if (d.detalhes) bloco.appendChild(linhaInfo("Detalhes", d.detalhes));
+        bloco.appendChild(linhaInfo("Denunciado por", d.denunciante_nome));
+        if (d.criado_em) bloco.appendChild(linhaInfo("Data", dataBonita(d.criado_em)));
+        if (ehComentario) {
+            bloco.appendChild(linhaInfo("Comentário", d.comentario_texto || "(já apagado)"));
+            bloco.appendChild(linhaInfo("Autor do comentário", d.comentario_autor_nome));
+        } else {
+            bloco.appendChild(linhaInfo("Autor da história", d.autor_nome));
+        }
+
+        var botoes = criar("div", "botoes");
+        botoes.style.cssText = "display:flex;flex-wrap:wrap;gap:8px;margin-top:10px";
+
+        if (d.historia_id) {
+            var ver = criar("a", "btn claro mini", "Ver história");
+            ver.href = "#livro-" + d.historia_id;
+            botoes.appendChild(ver);
+        }
+        if (ehComentario && d.comentario_texto) {
+            botoes.appendChild(botaoGestao("Apagar comentário", "perigo", async function () {
+                if (!confirm("Apagar este comentário?")) return;
+                await chamarAdmin("admin_apagar_comentario", { p_id: String(d.comentario_id) });
+                if (!adminErro) { await gestaoDenuncias(); aviso("avisoGestao", "Comentário apagado.", false); }
+            }));
+        }
+        if (!ehComentario && d.historia_id) {
+            botoes.appendChild(botaoGestao("Despublicar história", "perigo", async function () {
+                if (!confirm("Tirar esta história do ar?")) return;
+                await chamarAdmin("admin_despublicar_historia", { p_id: String(d.historia_id) });
+                if (!adminErro) aviso("avisoGestao", "História despublicada.", false);
+            }));
+        }
+        var alvoBan = ehComentario ? d.comentario_autor_id : d.autor_id;
+        var nomeBan = ehComentario ? d.comentario_autor_nome : d.autor_nome;
+        if (alvoBan) {
+            botoes.appendChild(botaoGestao("Banir autor", "perigo", function () { banirUsuario(alvoBan, nomeBan, gestaoDenuncias); }));
+        }
+        if (!d.resolvida) {
+            botoes.appendChild(botaoGestao("Marcar resolvida", "", async function () {
+                await chamarAdmin("admin_resolver_denuncia", { p_id: String(d.id) });
+                if (!adminErro) gestaoDenuncias();
+            }));
+        }
+        bloco.appendChild(botoes);
+        area.appendChild(bloco);
+    });
+}
+
+async function banirUsuario(id, nome, depois) {
+    var motivo = prompt("Banir " + (nome || "este usuário") + "? Escreva o motivo (fica registrado). Cancelar para desistir.");
+    if (motivo === null) return;
+    await chamarAdmin("admin_banir", { p_user: id, p_motivo: motivo });
+    if (!adminErro) {
+        if (depois) await depois();
+        aviso("avisoGestao", "Usuário banido e histórias despublicadas.", false);
+    }
+}
+
+async function gestaoUsuarios(busca) {
+    var lista = await chamarAdmin("admin_usuarios", { p_busca: busca });
+    var area = pegar("gestaoConteudo");
+    area.innerHTML = "";
+
+    var caixa = criar("div", "bloco");
+    var campo = document.createElement("input");
+    campo.type = "text";
+    campo.placeholder = "Buscar por nome, usuário ou e-mail";
+    campo.value = busca || "";
+    caixa.appendChild(campo);
+    var ir = criar("button", "btn mini", "Buscar");
+    ir.type = "button";
+    ir.style.marginTop = "10px";
+    ir.addEventListener("click", function () { gestaoUsuarios(campo.value.trim()); });
+    caixa.appendChild(ir);
+    area.appendChild(caixa);
+
+    if (!lista) return;
+    if (!lista.length) { area.appendChild(criar("p", "vazio", "Nenhum usuário encontrado.")); return; }
+
+    lista.forEach(function (u) {
+        var bloco = criar("div", "bloco");
+        bloco.appendChild(criar("strong", "", (u.nome || "(sem nome)") + (u.usuario ? "  @" + u.usuario : "")));
+        if (u.banido) bloco.appendChild(criar("span", "selo", "Banido"));
+        if (u.admin) bloco.appendChild(criar("span", "selo ok", "Admin"));
+        bloco.appendChild(linhaInfo("E-mail", u.email));
+        bloco.appendChild(linhaInfo("Criada em", dataBonita(u.criado_em)));
+        bloco.appendChild(linhaInfo("Histórias", u.historias));
+        if (u.banido && u.motivo_ban) bloco.appendChild(linhaInfo("Motivo do ban", u.motivo_ban));
+
+        if (!u.admin) {
+            var botoes = criar("div", "botoes");
+            botoes.style.cssText = "display:flex;flex-wrap:wrap;gap:8px;margin-top:10px";
+            if (u.banido) {
+                botoes.appendChild(botaoGestao("Desbanir", "claro", async function () {
+                    if (!confirm("Desbanir este usuário? As histórias continuam despublicadas.")) return;
+                    await chamarAdmin("admin_desbanir", { p_user: u.id });
+                    if (!adminErro) await gestaoUsuarios(busca);
+                }));
+            } else {
+                botoes.appendChild(botaoGestao("Banir", "perigo", function () { banirUsuario(u.id, u.nome || u.usuario, function () { gestaoUsuarios(busca); }); }));
+            }
+            bloco.appendChild(botoes);
+        }
+        area.appendChild(bloco);
+    });
+}
+
+async function gestaoMonetizacao() {
+    var lista = await chamarAdmin("admin_monetizacao", { p_min_caps: GESTAO_MIN_CAPS, p_min_leituras: GESTAO_MIN_LEITURAS });
+    var area = pegar("gestaoConteudo");
+    area.innerHTML = "";
+    if (!lista) return;
+
+    var regras = criar("div", "bloco");
+    regras.appendChild(criar("h3", "", "Regras para participar"));
+    regras.appendChild(criar("p", "ajuda", "História publicada com mais de " + GESTAO_MIN_CAPS + " capítulos publicados e pelo menos " + GESTAO_MIN_LEITURAS + " leituras no total. Esta lista é só para consulta."));
+    area.appendChild(regras);
+
+    var participantes = lista.filter(function (x) { return x.qualifica && !x.banido; });
+    var andamento = lista.filter(function (x) { return !x.qualifica && !x.banido; });
+    var banidos = lista.filter(function (x) { return x.banido; });
+
+    function secao(titulo, itens, mostrarFalta) {
+        var bloco = criar("div", "bloco");
+        bloco.appendChild(criar("h3", "", titulo + " (" + itens.length + ")"));
+        if (!itens.length) bloco.appendChild(criar("p", "ajuda", "Ninguém por enquanto."));
+        itens.forEach(function (x) {
+            var linha = criar("div");
+            linha.style.cssText = "padding:10px 0;border-top:1px solid var(--linha)";
+            linha.appendChild(criar("strong", "", x.titulo || "(sem título)"));
+            linha.appendChild(linhaInfo("Autor", x.autor_nome));
+            var txt = x.capitulos + " capítulos · " + x.leituras + " leituras";
+            if (mostrarFalta) {
+                var faltaCap = Math.max(0, GESTAO_MIN_CAPS + 1 - x.capitulos);
+                var faltaLei = Math.max(0, GESTAO_MIN_LEITURAS - x.leituras);
+                txt += "  (faltam " + faltaCap + " cap. e " + faltaLei + " leituras)";
+            }
+            linha.appendChild(criar("p", "ajuda", txt));
+            bloco.appendChild(linha);
+        });
+        area.appendChild(bloco);
+    }
+
+    secao("Participantes", participantes, false);
+    secao("A caminho", andamento, true);
+    if (banidos.length) secao("Autores banidos", banidos, false);
+}
 
 /* =====================================================
    APP INSTALÁVEL (PWA)
