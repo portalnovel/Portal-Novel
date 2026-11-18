@@ -2,7 +2,7 @@
    Estratégia: a página (HTML) vem SEMPRE da internet primeiro, para que cada atualização
    que você subir apareça na hora. O cache só é usado quando o aparelho está sem internet.
    Os pedidos para outros sites (Supabase, bibliotecas) NÃO passam por aqui. */
-var CACHE = "portal-novel-v1";
+var CACHE = "portal-novel-v2";
 var ARQUIVOS = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", function (e) {
@@ -27,6 +27,11 @@ self.addEventListener("fetch", function (e) {
 
     var url = new URL(req.url);
     if (url.origin !== self.location.origin) return;   // Supabase e CDNs: direto da internet
+
+    // Só a página do app (/ ou /index.html) passa por aqui. Outros endereços, como sitemap.xml
+    // ou arquivos de verificação do Google, vão direto para a internet, sem mexer no cache.
+    var ehPaginaDoApp = url.pathname.slice(-1) === "/" || url.pathname.slice(-11) === "/index.html";
+    if (req.mode === "navigate" && !ehPaginaDoApp) return;
 
     // Página: internet primeiro (sempre a versão mais nova); sem internet, usa a guardada
     if (req.mode === "navigate") {

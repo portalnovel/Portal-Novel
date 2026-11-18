@@ -13,7 +13,18 @@
 <meta name="apple-mobile-web-app-title" content="Portal Novel">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="google" content="notranslate">
-<!-- Versão de teste: impede que o Google indexe. Apague a linha abaixo quando for abrir o app ao público. -->
+<meta name="description" content="Portal Novel: histórias para ler, escrever e compartilhar, capítulo por capítulo.">
+<link rel="canonical" href="https://portalnovel.com.br/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Portal Novel">
+<meta property="og:locale" content="pt_BR">
+<meta property="og:title" content="Portal Novel">
+<meta property="og:description" content="Histórias para ler, escrever e compartilhar.">
+<meta property="og:url" content="https://portalnovel.com.br/">
+<meta property="og:image" content="https://portalnovel.com.br/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23111111'/%3E%3Ctext x='32' y='46' font-size='38' font-family='Arial' font-weight='bold' text-anchor='middle' fill='%23FF5E62'%3EP%3C/text%3E%3C/svg%3E">
 
 <style>
@@ -156,6 +167,8 @@ body.escuro .selo.ok { background: #1F3A2A; color: #8FD6A9; }
 .selo-linha { display: flex; align-items: center; gap: 12px; margin: 10px 0 0; }
 .selo-linha img { width: 56px; height: 56px; }
 .selo-linha strong { display: block; }
+.livro .autor a { color: inherit; text-decoration: underline; }
+.autor-foto { width: 84px; height: 84px; border-radius: 50%; margin: 0 auto 10px; background: var(--suave-bg) center / cover no-repeat; display: flex; align-items: center; justify-content: center; font-size: 34px; font-weight: 700; color: var(--text-secondary); }
 .livro .chips { justify-content: center; }
 .livro p.sinopse { line-height: 1.6; margin-top: 10px; }
 .livro .bloco { text-align: left; }
@@ -340,7 +353,7 @@ window.addEventListener("unhandledrejection", function (e) {
             <div class="profile-stats">
                 <div class="stat-item"><strong class="stat-number" id="numObras">0</strong><span class="stat-label">Obras</span></div>
                 <div class="stat-item"><strong class="stat-number">0</strong><span class="stat-label">Lista de leitura</span></div>
-                <div class="stat-item"><strong class="stat-number">0</strong><span class="stat-label">Seguidores</span></div>
+                <div class="stat-item"><strong class="stat-number" id="numSeguidores">0</strong><span class="stat-label">Seguidores</span></div>
             </div>
             <div style="text-align:center">
                 <a class="btn" style="width:100%" href="#editarperfil">Editar perfil</a>
@@ -372,12 +385,19 @@ window.addEventListener("unhandledrejection", function (e) {
             <p class="ajuda" id="textoInstalar">Adicione o Portal Novel à tela inicial do seu celular e abra como um aplicativo.</p>
             <button type="button" class="btn" id="btnInstalar" style="width:100%" onclick="instalarApp()">Instalar o Portal Novel</button>
         </div>
-        <p class="ajuda" style="text-align:center;margin-top:16px">Portal Novel · versão 10.16</p>
+        <p class="ajuda" style="text-align:center;margin-top:16px">Portal Novel · versão 10.17</p>
     </section>
 
     <!-- LIVRO (serve para qualquer história) -->
     <section class="tela" id="tela-livro">
         <div class="livro" id="livro"></div>
+    </section>
+
+    <!-- AUTOR -->
+    <section class="tela" id="tela-autor">
+        <div class="bloco" id="autorCabeca"></div>
+        <h2>Histórias</h2>
+        <div class="books-grid" id="autorHistorias"></div>
     </section>
 
     <!-- NOVA HISTÓRIA -->
@@ -819,7 +839,7 @@ var GENEROS = [
     { id: "fanfic", nome: "Fanfic" }
 ];
 
-var TELAS = ["inicio", "buscar", "biblioteca", "escrever", "avisos", "perfil", "configuracoes", "livro", "nova", "capitulos", "editor", "entrar", "termos", "privacidade", "publicar", "denunciar", "ler", "editarperfil", "preferencias", "notificacoes", "ajuda", "excluirconta", "gestao"];
+var TELAS = ["inicio", "buscar", "biblioteca", "escrever", "avisos", "perfil", "configuracoes", "livro", "nova", "capitulos", "editor", "entrar", "termos", "privacidade", "publicar", "denunciar", "ler", "editarperfil", "preferencias", "notificacoes", "ajuda", "excluirconta", "gestao", "autor"];
 
 var HISTORIAS = [];          // histórias publicadas (lista do início e da busca)
 var FUNDADORES = {};         // id do autor -> número do selo Fundador
@@ -1195,7 +1215,10 @@ async function mostrarLivro(id, token) {
     pintarCapa(capa, h);
     area.appendChild(capa);
     area.appendChild(criar("h1", "", h.titulo));
-    var pAutor = criar("p", "autor", "por " + h.autor);
+    var pAutor = criar("p", "autor");
+    var linkAutor = criar("a", "", "por " + h.autor);
+    linkAutor.href = "#autor-" + h.autor_id;
+    pAutor.appendChild(linkAutor);
     if (FUNDADORES[h.autor_id]) pAutor.appendChild(seloFundador(FUNDADORES[h.autor_id]));
     area.appendChild(pAutor);
 
@@ -1259,6 +1282,174 @@ async function mostrarLivro(id, token) {
     estadoCurtida = { id: h.id, n: nCurtidas, curtiu: jaCurti, ocupado: false, titulo: h.titulo };
     desenharAcoes();
     desenharComentarios(h.id, h.titulo, token);
+}
+
+/* =====================================================
+   PÁGINA DO AUTOR E SEGUIDORES
+===================================================== */
+var estadoSeguir = { id: null, seguindo: false, total: 0, ocupado: false };
+
+async function contarSeguidores(id) {
+    try {
+        var r = await db.rpc("numero_seguidores", { p_autor: id });
+        return (!r.error && typeof r.data === "number") ? r.data : 0;
+    } catch (erro) { return 0; }
+}
+
+async function euSigoAutor(id) {
+    if (!usuarioLogado || usuarioLogado.id === id) return false;
+    try {
+        var r = await db.from("seguidores").select("autor_id").eq("seguidor_id", usuarioLogado.id).eq("autor_id", id).maybeSingle();
+        return !r.error && !!r.data;
+    } catch (erro) { return false; }
+}
+
+function itemStat(numero, rotulo) {
+    var d = criar("div", "stat-item");
+    d.appendChild(criar("strong", "stat-number", numero));
+    d.appendChild(criar("span", "stat-label", rotulo));
+    return d;
+}
+
+async function atualizarMeusSeguidores() {
+    var el = pegar("numSeguidores");
+    if (!el) return;
+    if (!usuarioLogado) { el.textContent = "0"; return; }
+    var n = await contarSeguidores(usuarioLogado.id);
+    el.textContent = String(n);
+}
+
+function desenharBotaoSeguir() {
+    var area = pegar("autorAcao");
+    if (!area) return;
+    area.innerHTML = "";
+    if (!usuarioLogado) {
+        var a = criar("a", "btn", "Entrar para seguir");
+        a.href = "#entrar";
+        a.style.width = "100%";
+        area.appendChild(a);
+        return;
+    }
+    if (usuarioLogado.id === estadoSeguir.id) {
+        var b = criar("a", "btn claro", "Este é o seu perfil");
+        b.href = "#perfil";
+        b.style.width = "100%";
+        area.appendChild(b);
+        return;
+    }
+    var botao = criar("button", estadoSeguir.seguindo ? "btn claro" : "btn", estadoSeguir.seguindo ? "Seguindo" : "Seguir");
+    botao.type = "button";
+    botao.style.width = "100%";
+    botao.addEventListener("click", alternarSeguir);
+    area.appendChild(botao);
+}
+
+async function alternarSeguir() {
+    if (!usuarioLogado || estadoSeguir.ocupado || !estadoSeguir.id) return;
+    var alvo = estadoSeguir.id;
+    var estavaSeguindo = estadoSeguir.seguindo;
+    estadoSeguir.ocupado = true;
+    var aviso = pegar("avisoSeguir");
+    aviso.textContent = "";
+    var r;
+    if (estavaSeguindo) {
+        r = await db.from("seguidores").delete().eq("seguidor_id", usuarioLogado.id).eq("autor_id", alvo);
+    } else {
+        r = await db.from("seguidores").insert({ seguidor_id: usuarioLogado.id, autor_id: alvo });
+    }
+    if (estadoSeguir.id !== alvo) return;
+    estadoSeguir.ocupado = false;
+    if (r.error) {
+        aviso.className = "aviso erro";
+        aviso.textContent = "Não foi possível agora. Tente de novo.";
+        return;
+    }
+    estadoSeguir.seguindo = !estavaSeguindo;
+    estadoSeguir.total = Math.max(0, estadoSeguir.total + (estadoSeguir.seguindo ? 1 : -1));
+    var n = pegar("autorNumSeguidores");
+    if (n) n.textContent = String(estadoSeguir.total);
+    desenharBotaoSeguir();
+}
+
+async function mostrarAutor(id, token) {
+    var cab = pegar("autorCabeca");
+    var lista = pegar("autorHistorias");
+    cab.innerHTML = "";
+    lista.innerHTML = "";
+    cab.appendChild(criar("p", "vazio", "Carregando..."));
+
+    if (typeof id !== "string" || !/^[0-9a-f-]{36}$/i.test(id)) {
+        cab.innerHTML = "";
+        cab.appendChild(criar("p", "vazio", "Autor não encontrado."));
+        return;
+    }
+
+    var r = await db.from("perfis").select("id,nome,usuario,sobre,foto").eq("id", id).maybeSingle();
+    if (token !== tokenRota) return;
+    if (r.error || !r.data) {
+        cab.innerHTML = "";
+        cab.appendChild(criar("p", "vazio", "Autor não encontrado."));
+        return;
+    }
+    var p = r.data;
+    NOMES[id] = p.nome || p.usuario || "Autor";
+    await carregarFundadores([id]);
+
+    var hs = await db.from("historias")
+        .select("id,titulo,sinopse,capa,generos,idade,status,autor_id,criado_em")
+        .eq("autor_id", id).eq("publicada", true)
+        .order("criado_em", { ascending: false });
+    var total = await contarSeguidores(id);
+    var sigo = await euSigoAutor(id);
+    if (token !== tokenRota) return;
+
+    estadoSeguir = { id: id, seguindo: sigo, total: total, ocupado: false };
+    var historias = (hs.data || []).map(normalizar);
+
+    cab.innerHTML = "";
+    var topo = criar("div", "profile-header");
+    var foto = criar("div", "autor-foto");
+    var url = imagemSegura(p.foto);
+    if (url) foto.style.backgroundImage = "url(" + url + ")";
+    else foto.textContent = (p.nome || p.usuario || "?").charAt(0).toUpperCase();
+    topo.appendChild(foto);
+    var nome = criar("h2", "", p.nome || p.usuario || "Autor");
+    if (FUNDADORES[id]) nome.appendChild(seloFundador(FUNDADORES[id]));
+    topo.appendChild(nome);
+    if (p.usuario) {
+        var u = criar("p", "ajuda", "@" + p.usuario);
+        u.style.margin = "2px 0 0";
+        topo.appendChild(u);
+    }
+    if (p.sobre) {
+        var sobre = criar("p", "", p.sobre);
+        sobre.style.cssText = "margin:10px 0 0;color:var(--text-secondary);line-height:1.5";
+        topo.appendChild(sobre);
+    }
+    cab.appendChild(topo);
+
+    var stats = criar("div", "profile-stats");
+    stats.appendChild(itemStat(String(historias.length), "Obras"));
+    var itemSeg = itemStat(String(total), "Seguidores");
+    itemSeg.firstChild.id = "autorNumSeguidores";
+    stats.appendChild(itemSeg);
+    cab.appendChild(stats);
+
+    var acao = criar("div");
+    acao.id = "autorAcao";
+    acao.style.textAlign = "center";
+    cab.appendChild(acao);
+    var aviso = criar("p", "aviso");
+    aviso.id = "avisoSeguir";
+    aviso.style.textAlign = "center";
+    cab.appendChild(aviso);
+    desenharBotaoSeguir();
+
+    if (!historias.length) {
+        lista.appendChild(criar("p", "vazio", "Este autor ainda não publicou histórias."));
+    } else {
+        historias.forEach(function (h) { lista.appendChild(criarCard(h)); });
+    }
 }
 
 /* =====================================================
@@ -1725,6 +1916,10 @@ function rota() {
         var partes = h.split("-");
         leituraAtual = { id: lerIdDaRota(partes[1]), n: parseInt(partes[2], 10) };
     }
+    if (h.indexOf("autor-") === 0) {
+        tela = "autor";
+        id = h.substring(6);
+    }
     if (TELAS.indexOf(tela) === -1) tela = "inicio";
 
     TELAS.forEach(function (t) {
@@ -1732,7 +1927,7 @@ function rota() {
     });
 
     var destaque = tela;
-    if (tela === "livro") destaque = "inicio";
+    if (tela === "livro" || tela === "autor") destaque = "inicio";
     if (tela === "nova" || tela === "capitulos" || tela === "editor" || tela === "publicar") destaque = "escrever";
 
     var gaveta = destaque;
@@ -1752,6 +1947,8 @@ function rota() {
 
     if (tela === "inicio" || tela === "buscar") atualizarListas(false);
     if (tela === "livro") mostrarLivro(id, token);
+    if (tela === "autor") mostrarAutor(id, token);
+    if (tela === "perfil") atualizarMeusSeguidores();
     if (tela === "ler") prepararLeitor(token);
     if (tela === "nova") carregarForm();
     if (tela === "capitulos") abrirCapitulos();
@@ -1779,7 +1976,7 @@ window.addEventListener("hashchange", rota);
 ===================================================== */
 var NOME_RESPONSAVEL = "Tomazini";
 var EMAIL_CONTATO = "xegg.tmz@gmail.com";
-var DATA_TEXTOS = "15 de novembro de 2026";
+var DATA_TEXTOS = "17 de novembro de 2026";
 
 var TERMOS = [
     { t: "1. Aceite dos termos", p: [
@@ -1805,9 +2002,9 @@ var TERMOS = [
     { t: "7. Anúncios", p: [
         "O PORTAL NOVEL poderá exibir anúncios para se manter gratuito para os leitores. Não clique nos anúncios para gerar ganhos e não peça para outras pessoas fazerem isso: cliques artificiais podem levar à suspensão da conta."
     ] },
-    { t: "8. Selos e programas para autores", p: [
+    { t: "8. Selos e incentivos para autores", p: [
         "O PORTAL NOVEL pode conceder selos, como o de Escritor Fundador, que é dado por convite e não pode ser comprado. O selo é vitalício, mas pode ser retirado em caso de violação grave destes termos.",
-        "No futuro, o PORTAL NOVEL poderá criar programas de participação em receita de anúncios para alguns autores. Se isso acontecer, as regras (quem participa, como o valor é calculado, valor mínimo para saque e prazos) serão divulgadas com aviso prévio, e a participação dependerá de cumpri-las. Ter um selo não garante participação nem pagamento."
+        "No futuro, o PORTAL NOVEL poderá criar programas de incentivo e reconhecimento para autores. Se isso acontecer, as regras serão divulgadas com aviso prévio, e a participação dependerá de cumpri-las. Ter um selo não garante participação nem qualquer pagamento."
     ] },
     { t: "9. Mudanças e contato", p: [
         "Podemos atualizar estes termos e, quando isso acontecer, a data abaixo será alterada. Dúvidas: " + EMAIL_CONTATO + ".",
@@ -1822,7 +2019,7 @@ var PRIVACIDADE = [
     { t: "2. Quais dados coletamos", p: [
         "Conta: e-mail, nome de usuário e senha (a senha é protegida e nunca fica visível para nós).",
         "Perfil: foto e descrição, se você enviar.",
-        "Conteúdo: histórias, capítulos, capas, comentários e curtidas.",
+        "Conteúdo e relações: histórias, capítulos, capas, comentários, curtidas e os autores que você segue.",
         "Uso: quais capítulos foram abertos (para o contador de leituras) e dados técnicos básicos do aparelho e do navegador."
     ] },
     { t: "3. Para que usamos os dados", p: [
@@ -2762,6 +2959,7 @@ function prepararNotificacoes() {
 async function carregarPerfilDaConta() {
     if (!usuarioLogado) return;
     await carregarFundadores([usuarioLogado.id]);
+    atualizarMeusSeguidores();
     var r = await db.from("perfis").select("*").eq("id", usuarioLogado.id).maybeSingle();
 
     if (r.data) {
@@ -2921,8 +3119,6 @@ async function excluirMinhaConta() {
 ===================================================== */
 var souAdmin = false;
 var abaGestao = "resumo";
-var GESTAO_MIN_CAPS = 5;       // "mais de 5 capítulos"
-var GESTAO_MIN_LEITURAS = 300; // mínimo de leituras no total
 
 async function verificarAdmin() {
     souAdmin = false;
@@ -2982,7 +3178,7 @@ async function prepararGestao(token) {
 function desenharAbasGestao() {
     var area = pegar("abasGestao");
     area.innerHTML = "";
-    [["resumo", "Resumo"], ["denuncias", "Denúncias"], ["usuarios", "Usuários"], ["monetizacao", "Monetização"]].forEach(function (a) {
+    [["resumo", "Resumo"], ["denuncias", "Denúncias"], ["usuarios", "Usuários"]].forEach(function (a) {
         var chip = criar("button", "chip" + (a[0] === abaGestao ? " ativo" : ""), a[1]);
         chip.type = "button";
         chip.addEventListener("click", function () { abrirAbaGestao(a[0]); });
@@ -2999,7 +3195,6 @@ async function abrirAbaGestao(aba) {
     if (aba === "resumo") await gestaoResumo();
     if (aba === "denuncias") await gestaoDenuncias();
     if (aba === "usuarios") await gestaoUsuarios("");
-    if (aba === "monetizacao") await gestaoMonetizacao();
 }
 
 function linhaInfo(rotulo, valor) {
@@ -3152,47 +3347,6 @@ async function gestaoUsuarios(busca) {
         }
         area.appendChild(bloco);
     });
-}
-
-async function gestaoMonetizacao() {
-    var lista = await chamarAdmin("admin_monetizacao", { p_min_caps: GESTAO_MIN_CAPS, p_min_leituras: GESTAO_MIN_LEITURAS });
-    var area = pegar("gestaoConteudo");
-    area.innerHTML = "";
-    if (!lista) return;
-
-    var regras = criar("div", "bloco");
-    regras.appendChild(criar("h3", "", "Regras para participar"));
-    regras.appendChild(criar("p", "ajuda", "História publicada com mais de " + GESTAO_MIN_CAPS + " capítulos publicados e pelo menos " + GESTAO_MIN_LEITURAS + " leituras no total. Esta lista é só para consulta."));
-    area.appendChild(regras);
-
-    var participantes = lista.filter(function (x) { return x.qualifica && !x.banido; });
-    var andamento = lista.filter(function (x) { return !x.qualifica && !x.banido; });
-    var banidos = lista.filter(function (x) { return x.banido; });
-
-    function secao(titulo, itens, mostrarFalta) {
-        var bloco = criar("div", "bloco");
-        bloco.appendChild(criar("h3", "", titulo + " (" + itens.length + ")"));
-        if (!itens.length) bloco.appendChild(criar("p", "ajuda", "Ninguém por enquanto."));
-        itens.forEach(function (x) {
-            var linha = criar("div");
-            linha.style.cssText = "padding:10px 0;border-top:1px solid var(--linha)";
-            linha.appendChild(criar("strong", "", x.titulo || "(sem título)"));
-            linha.appendChild(linhaInfo("Autor", x.autor_nome));
-            var txt = x.capitulos + " capítulos · " + x.leituras + " leituras";
-            if (mostrarFalta) {
-                var faltaCap = Math.max(0, GESTAO_MIN_CAPS + 1 - x.capitulos);
-                var faltaLei = Math.max(0, GESTAO_MIN_LEITURAS - x.leituras);
-                txt += "  (faltam " + faltaCap + " cap. e " + faltaLei + " leituras)";
-            }
-            linha.appendChild(criar("p", "ajuda", txt));
-            bloco.appendChild(linha);
-        });
-        area.appendChild(bloco);
-    }
-
-    secao("Participantes", participantes, false);
-    secao("A caminho", andamento, true);
-    if (banidos.length) secao("Autores banidos", banidos, false);
 }
 
 /* =====================================================
