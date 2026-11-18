@@ -385,7 +385,7 @@ window.addEventListener("unhandledrejection", function (e) {
             <p class="ajuda" id="textoInstalar">Adicione o Portal Novel à tela inicial do seu celular e abra como um aplicativo.</p>
             <button type="button" class="btn" id="btnInstalar" style="width:100%" onclick="instalarApp()">Instalar o Portal Novel</button>
         </div>
-        <p class="ajuda" style="text-align:center;margin-top:16px">Portal Novel · versão 10.17</p>
+        <p class="ajuda" style="text-align:center;margin-top:16px">Portal Novel · versão 10.18</p>
     </section>
 
     <!-- LIVRO (serve para qualquer história) -->
@@ -1279,7 +1279,7 @@ async function mostrarLivro(id, token) {
     comentarios.id = "blocoComentarios";
     area.appendChild(comentarios);
 
-    estadoCurtida = { id: h.id, n: nCurtidas, curtiu: jaCurti, ocupado: false, titulo: h.titulo };
+    estadoCurtida = { id: h.id, n: nCurtidas, curtiu: jaCurti, ocupado: false, titulo: h.titulo, autor: h.autor };
     desenharAcoes();
     desenharComentarios(h.id, h.titulo, token);
 }
@@ -1444,6 +1444,14 @@ async function mostrarAutor(id, token) {
     aviso.style.textAlign = "center";
     cab.appendChild(aviso);
     desenharBotaoSeguir();
+
+    var divComp = criar("div");
+    divComp.style.cssText = "text-align:center;margin-top:8px";
+    var btnComp = criar("button", "btn claro mini", "Compartilhar perfil");
+    btnComp.type = "button";
+    btnComp.addEventListener("click", compartilharAutor);
+    divComp.appendChild(btnComp);
+    cab.appendChild(divComp);
 
     if (!historias.length) {
         lista.appendChild(criar("p", "vazio", "Este autor ainda não publicou histórias."));
@@ -2254,6 +2262,61 @@ var MOTIVOS = [
 ];
 var alvoDenuncia = null;
 
+/* =====================================================
+   COMPARTILHAR LINK (história e autor)
+   Usa o menu de compartilhar do celular; no computador, copia o endereço.
+===================================================== */
+function copiarTexto(texto) {
+    if (navigator.clipboard && window.isSecureContext) {
+        return navigator.clipboard.writeText(texto);
+    }
+    return new Promise(function (ok, falha) {
+        try {
+            var t = document.createElement("textarea");
+            t.value = texto;
+            t.style.position = "fixed";
+            t.style.opacity = "0";
+            document.body.appendChild(t);
+            t.select();
+            var feito = document.execCommand("copy");
+            document.body.removeChild(t);
+            if (feito) ok(); else falha(new Error("copiar"));
+        } catch (erro) { falha(erro); }
+    });
+}
+
+async function compartilharLink(titulo, texto, link, idAviso) {
+    if (navigator.share) {
+        try {
+            await navigator.share({ title: titulo, text: texto, url: link });
+            return;
+        } catch (erro) {
+            if (erro && erro.name === "AbortError") return;   // a pessoa fechou o menu
+        }
+    }
+    try {
+        await copiarTexto(link);
+        aviso(idAviso, "Link copiado!", false);
+    } catch (erro) {
+        aviso(idAviso, "Não foi possível copiar. Link: " + link, true);
+    }
+}
+
+function compartilharHistoria() {
+    var e = estadoCurtida;
+    var link = location.origin + location.pathname + "#livro-" + e.id;
+    var texto = e.titulo + (e.autor ? ", por " + e.autor : "") + ". Leia no Portal Novel.";
+    compartilharLink(e.titulo, texto, link, "avisoAcoes");
+}
+
+function compartilharAutor() {
+    var id = estadoSeguir.id;
+    if (!id) return;
+    var nome = NOMES[id] || "Autor";
+    var link = location.origin + location.pathname + "#autor-" + id;
+    compartilharLink(nome, nome + " no Portal Novel.", link, "avisoSeguir");
+}
+
 function desenharAcoes() {
     var area = pegar("blocoAcoes");
     if (!area) return;
@@ -2266,7 +2329,11 @@ function desenharAcoes() {
     var denunciar = criar("button", "btn claro mini", "Denunciar");
     denunciar.addEventListener("click", function () { abrirDenuncia("historia", e.id, null, e.titulo); });
 
+    var compartilhar = criar("button", "btn claro mini", "Compartilhar");
+    compartilhar.addEventListener("click", compartilharHistoria);
+
     area.appendChild(curtir);
+    area.appendChild(compartilhar);
     area.appendChild(denunciar);
 }
 
