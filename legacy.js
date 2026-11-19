@@ -73,7 +73,7 @@ var GENEROS = [
     { id: "fanfic", nome: "Fanfic" }
 ];
 
-var TELAS = ["inicio", "buscar", "biblioteca", "escrever", "avisos", "perfil", "configuracoes", "livro", "nova", "capitulos", "editor", "entrar", "termos", "privacidade", "publicar", "denunciar", "ler", "editarperfil", "preferencias", "notificacoes", "ajuda", "excluirconta", "gestao", "autor"];
+var TELAS = ["inicio", "buscar", "biblioteca", "escrever", "avisos", "perfil", "configuracoes", "livro", "nova", "capitulos", "editor", "entrar", "termos", "privacidade", "publicar", "denunciar", "ler", "editarperfil", "preferencias", "notificacoes", "ajuda", "excluirconta", "gestao", "autor", "seguidores", "mensagens", "conversa", "comunidades", "comunidade", "novacomunidade"];
 
 var HISTORIAS = [];          // histórias publicadas (lista do início e da busca)
 var FUNDADORES = {};         // id do autor -> número do selo Fundador
@@ -1153,6 +1153,239 @@ pegar("capTexto").addEventListener("input", aoDigitar);
 pegar("capParte").addEventListener("change", aoDigitar);
 
 /* =====================================================
+   COMUNIDADES: CADA PESSOA CRIA A SUA (NOME E CAPA ESCOLHIDOS POR QUEM CRIA)
+   A comunidade fica na tabela "comunidades". O CHAT não salva nada: usa o Realtime do Supabase
+   (Broadcast + Presence). Ao sair da página ou do app, o canal fecha e o chat zera.
+===================================================== */
+var CAPA_PADRAO_COMUNIDADE = "/comunidade-capa.svg";
+var COMUNIDADE_MAX_MSG = 100;
+var canalComunidade = null;
+var comunidadeAtual = null;
+var comunidadeAtualId = null;
+var ultimoEnvioComunidade = 0;
+var capaComunidadeForm = "";
+var comunidadeEditandoId = null;
+
+function capaSegura(s) {
+    return (typeof s === "string" && s.indexOf("data:image/jpeg;base64,") === 0 && s.length < 60000) ? s : CAPA_PADRAO_COMUNIDADE;
+}
+
+/* ---------- lista ---------- */
+async function carregarComunidades() {
+    var area = pegar("listaComunidades");
+    if (!area) return;
+    area.innerHTML = "";
+    area.appendChild(criar("p", "vazio", "Carregando comunidades..."));
+    var r = await db.from("comunidades").select("id,nome,descricao,capa,criador_id,created_at").order("created_at", { ascending: false }).limit(100);
+    area.innerHTML = "";
+    if (r.error) { area.appendChild(criar("p", "vazio", "Não foi possível carregar as comunidades. Execute o portal-novel-comunidades.sql no Supabase.")); return; }
+    if (!r.data || !r.data.length) { area.appendChild(criar("p", "vazio", "Ainda não há comunidades. Crie a primeira!")); return; }
+    r.data.forEach(function (c) {
+        var item = criar("a", "bloco comunidade-item");
+        item.href = "#comunidade-" + c.id;
+        var img = criar("img", "comunidade-capa");
+        img.src = capaSegura(c.capa); img.alt = ""; img.width = 56; img.height = 56;
+        var info = criar("div");
+        info.appendChild(criar("strong", "", c.nome));
+        if (c.descricao) info.appendChild(criar("p", "ajuda", c.descricao));
+        item.appendChild(img);
+        item.appendChild(info);
+        area.appendChild(item);
+    });
+}
+
+/* ---------- criar / editar ---------- */
+function mostrarCapaForm() {
+    var img = pegar("comCapaPrevia");
+    if (img) img.src = capaSegura(capaComunidadeForm);
+}
+
+function removerCapaComunidade() {
+    capaComunidadeForm = "";
+    mostrarCapaForm();
+}
+
+pegar("comCapaArquivo").addEventListener("change", function () {
+    var arquivo = this.files[0];
+    if (!arquivo) return;
+    var leitor = new FileReader();
+    leitor.onload = function () {
+        var img = new Image();
+        img.onload = function () {
+            var lado = Math.min(img.width, img.height);
+            var quadro = document.createElement("canvas");
+            quadro.width = 128;
+            quadro.height = 128;
+            quadro.getContext("2d").drawImage(img, (img.width - lado) / 2, (img.height - lado) / 2, lado, lado, 0, 0, 128, 128);
+            capaComunidadeForm = quadro.toDataURL("image/jpeg", 0.8);
+            mostrarCapaForm();
+        };
+        img.src = leitor.result;
+    };
+    leitor.readAsDataURL(arquivo);
+});
+
+async function prepararFormComunidade(id) {
+    comunidadeEditandoId = null;
+    capaComunidadeForm = "";
+    pegar("comNome").value = "";
+    pegar("comDescricao").value = "";
+    aviso("avisoComForm", "", false);
+    pegar("tituloFormComunidade").textContent = id ? "Editar comunidade" : "Criar comunidade";
+    mostrarCapaForm();
+    if (!usuarioLogado) { aviso("avisoComForm", "Entre na sua conta para criar uma comunidade.", true); return; }
+    if (!id) return;
+    var r = await db.from("comunidades").select("id,nome,descricao,capa,criador_id").eq("id", id).maybeSingle();
+    if (r.error || !r.data) { aviso("avisoComForm", "Comunidade não encontrada.", true); return; }
+    if (r.data.criador_id !== usuarioLogado.id) { aviso("avisoComForm", "Só quem criou a comunidade pode editá-la.", true); return; }
+    comunidadeEditandoId = r.data.id;
+    pegar("comNome").value = r.data.nome || "";
+    pegar("comDescricao").value = r.data.descricao || "";
+    capaComunidadeForm = r.data.capa || "";
+    mostrarCapaForm();
+}
+
+async function salvarComunidade() {
+    if (!usuarioLogado) { aviso("avisoComForm", "Entre na sua conta para criar uma comunidade.", true); return; }
+    var nome = (pegar("comNome").value || "").replace(/\s+/g, " ").trim();
+    var descricao = (pegar("comDescricao").value || "").trim();
+    if (nome.length < 3) { aviso("avisoComForm", "O nome precisa ter pelo menos 3 letras.", true); return; }
+    var dados = { nome: nome, descricao: descricao, capa: capaComunidadeForm || "" };
+    var r;
+    if (comunidadeEditandoId) {
+        r = await db.from("comunidades").update(dados).eq("id", comunidadeEditandoId).select("id").single();
+    } else {
+        dados.criador_id = usuarioLogado.id;
+        r = await db.from("comunidades").insert(dados).select("id").single();
+    }
+    if (r.error) {
+        var msg = "Não foi possível salvar a comunidade.";
+        if (r.error.code === "23505") msg = "Já existe uma comunidade com esse nome.";
+        else if (r.error.message && r.error.message.indexOf("máximo") !== -1) msg = r.error.message;
+        aviso("avisoComForm", msg, true);
+        return;
+    }
+    location.hash = "comunidade-" + r.data.id;
+}
+
+async function excluirComunidade() {
+    if (!comunidadeAtual) return;
+    if (!confirm("Excluir a comunidade \"" + comunidadeAtual.nome + "\"? Não dá para desfazer.")) return;
+    var r = await db.from("comunidades").delete().eq("id", comunidadeAtual.id).select("id");
+    if (r.error || !r.data || !r.data.length) { aviso("avisoComunidadeChat", "Não foi possível excluir a comunidade.", true); return; }
+    location.hash = "comunidades";
+}
+
+/* ---------- chat ao vivo ---------- */
+function limparChatComunidade() {
+    var area = pegar("comunidadeMensagens");
+    if (area) area.innerHTML = "";
+}
+
+function sairComunidade() {
+    if (canalComunidade) {
+        try { db.removeChannel(canalComunidade); } catch (e) { }
+        canalComunidade = null;
+    }
+    comunidadeAtual = null;
+    comunidadeAtualId = null;
+    limparChatComunidade();
+}
+
+async function entrarComunidade(id) {
+    if (!id) { location.hash = "comunidades"; return; }
+    if (canalComunidade && comunidadeAtualId === id) return;
+    sairComunidade();
+    comunidadeAtualId = id;
+    var login = pegar("comunidadeLogin");
+    var chat = pegar("comunidadeChat");
+    var on = pegar("comunidadeOnline");
+    if (!login || !chat || !on) return;
+    pegar("comunidadeNome").textContent = "Comunidade";
+    pegar("comunidadeDescricao").textContent = "";
+    pegar("comunidadeCapa").src = CAPA_PADRAO_COMUNIDADE;
+    pegar("comunidadeGestao").style.display = "none";
+    login.style.display = "none";
+    chat.style.display = "none";
+    on.textContent = "Conectando...";
+    aviso("avisoComunidadeChat", "", false);
+
+    var r = await db.from("comunidades").select("id,nome,descricao,capa,criador_id").eq("id", id).maybeSingle();
+    if (comunidadeAtualId !== id) return;
+    if (r.error || !r.data) { on.textContent = "Comunidade não encontrada."; return; }
+    comunidadeAtual = r.data;
+    pegar("comunidadeNome").textContent = r.data.nome;
+    pegar("comunidadeDescricao").textContent = r.data.descricao || "";
+    pegar("comunidadeCapa").src = capaSegura(r.data.capa);
+    var dono = !!usuarioLogado && r.data.criador_id === usuarioLogado.id;
+    if (dono || souAdmin) {
+        pegar("comunidadeGestao").style.display = "block";
+        var ed = pegar("comunidadeEditar");
+        ed.href = "#editarcomunidade-" + r.data.id;
+        ed.style.display = dono ? "" : "none";
+    }
+    if (!usuarioLogado) { login.style.display = "block"; on.textContent = "Entre para conversar."; return; }
+    if (semConexao || typeof db.channel !== "function") { on.textContent = "Chat indisponível sem conexão."; return; }
+    chat.style.display = "block";
+
+    var canal = db.channel("comunidade-" + r.data.id, { config: { broadcast: { self: true }, presence: { key: usuarioLogado.id } } });
+    canal.on("broadcast", { event: "msg" }, function (ev) {
+        if (canal === canalComunidade) mostrarMensagemComunidade(ev.payload);
+    });
+    canal.on("presence", { event: "sync" }, function () {
+        if (canal !== canalComunidade) return;
+        var n = Object.keys(canal.presenceState()).length;
+        on.textContent = n + (n === 1 ? " pessoa online" : " pessoas online");
+    });
+    canalComunidade = canal;
+    canal.subscribe(function (status) {
+        if (canal !== canalComunidade) return;
+        if (status === "SUBSCRIBED") canal.track({ entrou: Date.now() });
+        else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") on.textContent = "Sem conexão com o chat.";
+    });
+}
+
+function mostrarMensagemComunidade(p) {
+    var area = pegar("comunidadeMensagens");
+    if (!area || !p || typeof p.texto !== "string") return;
+    var meu = !!usuarioLogado && p.uid === usuarioLogado.id;
+    var item = criar("div", "chat-msg" + (meu ? " minha" : ""));
+    item.appendChild(criar("strong", "", String(p.nome || "Leitor").slice(0, 40)));
+    item.appendChild(criar("p", "", p.texto.slice(0, 300)));
+    var perto = area.scrollHeight - area.scrollTop - area.clientHeight < 80;
+    area.appendChild(item);
+    while (area.children.length > COMUNIDADE_MAX_MSG) area.removeChild(area.firstChild);
+    if (perto || meu) area.scrollTop = area.scrollHeight;
+}
+
+async function enviarMensagemComunidade() {
+    var canal = canalComunidade;
+    if (!usuarioLogado || !canal) { aviso("avisoComunidadeChat", "Entre na sua conta para conversar.", true); return; }
+    var campo = pegar("comunidadeTexto");
+    var texto = (campo.value || "").replace(/\s+/g, " ").trim();
+    if (!texto) return;
+    var agora = Date.now();
+    if (agora - ultimoEnvioComunidade < 1500) { aviso("avisoComunidadeChat", "Aguarde um instante para enviar de novo.", true); return; }
+    ultimoEnvioComunidade = agora;
+    var perfil = lerPerfil();
+    var r = await canal.send({ type: "broadcast", event: "msg", payload: { uid: usuarioLogado.id, nome: String(perfil.nome || perfil.usuario || "Leitor").slice(0, 40), texto: texto.slice(0, 300), ts: agora } });
+    if (r !== "ok") { aviso("avisoComunidadeChat", "Não foi possível enviar. Verifique a conexão.", true); return; }
+    campo.value = "";
+    aviso("avisoComunidadeChat", "", false);
+}
+
+// Saiu do app, trocou de aba ou bloqueou a tela: a conversa acaba. Voltou: chat vazio.
+document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "hidden") { sairComunidade(); return; }
+    var h = (location.hash || "").replace("#", "");
+    if (h.indexOf("comunidade-") === 0) entrarComunidade(lerIdDaRota(h.substring(11)));
+});
+window.addEventListener("pagehide", sairComunidade);
+document.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" && !e.shiftKey && e.target && e.target.id === "comunidadeTexto") { e.preventDefault(); enviarMensagemComunidade(); }
+});
+
+/* =====================================================
    TROCA DE TELAS (pelo endereço: #inicio, #buscar, #livro-3, #nova ...)
 ===================================================== */
 function rota() {
@@ -1177,6 +1410,18 @@ function rota() {
         tela = "autor";
         id = h.substring(6);
     }
+    if (h.indexOf("conversa-") === 0) {
+        tela = "conversa";
+        id = h.substring(9);
+    }
+    if (h.indexOf("comunidade-") === 0) {
+        tela = "comunidade";
+        id = lerIdDaRota(h.substring(11));
+    }
+    if (h.indexOf("editarcomunidade-") === 0) {
+        tela = "novacomunidade";
+        id = lerIdDaRota(h.substring(17));
+    }
     if (TELAS.indexOf(tela) === -1) tela = "inicio";
 
     TELAS.forEach(function (t) {
@@ -1185,6 +1430,8 @@ function rota() {
 
     var destaque = tela;
     if (tela === "livro" || tela === "autor") destaque = "inicio";
+    if (tela === "conversa") destaque = "mensagens";
+    if (tela === "comunidade" || tela === "novacomunidade") destaque = "comunidades";
     if (tela === "nova" || tela === "capitulos" || tela === "editor" || tela === "publicar") destaque = "escrever";
 
     var gaveta = destaque;
@@ -1206,6 +1453,10 @@ function rota() {
     if (tela === "livro") mostrarLivro(id, token);
     if (tela === "autor") mostrarAutor(id, token);
     if (tela === "perfil") atualizarMeusSeguidores();
+    if (tela === "seguidores") carregarListaSeguidores();
+    if (tela === "avisos") carregarAvisos();
+    if (tela === "mensagens") carregarConversas();
+    if (tela === "conversa") mostrarConversa(id, token);
     if (tela === "ler") prepararLeitor(token);
     if (tela === "nova") carregarForm();
     if (tela === "capitulos") abrirCapitulos();
@@ -1217,6 +1468,10 @@ function rota() {
     if (tela === "notificacoes") prepararNotificacoes();
     if (tela === "excluirconta") prepararExcluirConta();
     if (tela === "gestao") prepararGestao(token);
+
+    if (tela === "comunidades") carregarComunidades();
+    if (tela === "novacomunidade") prepararFormComunidade(id);
+    if (tela === "comunidade") entrarComunidade(id); else sairComunidade();
 
     atualizarRascunhos();
     aplicarTema();
@@ -1233,7 +1488,7 @@ window.addEventListener("hashchange", rota);
 ===================================================== */
 var NOME_RESPONSAVEL = "Tomazini";
 var EMAIL_CONTATO = "xegg.tmz@gmail.com";
-var DATA_TEXTOS = "17 de novembro de 2026";
+var DATA_TEXTOS = "19 de novembro de 2026";
 
 var TERMOS = [
     { t: "1. Aceite dos termos", p: [
@@ -1250,8 +1505,9 @@ var TERMOS = [
         "Não é permitido publicar: conteúdo sexualmente explícito; qualquer conteúdo sexual envolvendo menores de 18 anos; apologia à violência, ao ódio ou à discriminação; conteúdo ilegal; plágio; spam; dados pessoais de outras pessoas sem autorização.",
         "Histórias com temas maduros devem receber a classificação indicativa correta."
     ] },
-    { t: "5. Comentários", p: [
-        "Comente com respeito. Ofensas, ameaças e assédio podem levar à remoção do comentário e à suspensão da conta."
+    { t: "5. Comentários e mensagens privadas", p: [
+        "Comente com respeito. Ofensas, ameaças e assédio podem levar à remoção do comentário e à suspensão da conta.",
+        "Você só pode enviar mensagem privada a quem segue você ou em resposta a quem escreveu para você. Não use mensagens para assediar, ameaçar, enviar spam, pedir dados pessoais ou fazer contato de natureza sexual com qualquer pessoa. Quem descumprir pode ter a conta suspensa ou banida."
     ] },
     { t: "6. Denúncias e remoção", p: [
         "Qualquer pessoa pode denunciar uma obra ou um comentário. Podemos remover conteúdo que viole estes termos e suspender contas, com ou sem aviso prévio. Para denúncias, escreva para " + EMAIL_CONTATO + "."
@@ -1277,6 +1533,7 @@ var PRIVACIDADE = [
         "Conta: e-mail, nome de usuário e senha (a senha é protegida e nunca fica visível para nós).",
         "Perfil: foto e descrição, se você enviar.",
         "Conteúdo e relações: histórias, capítulos, capas, comentários, curtidas e os autores que você segue.",
+        "Mensagens e avisos: as mensagens privadas que você envia e recebe e as notificações da sua conta. Elas aparecem no app só para quem participa da conversa e ficam guardadas enquanto a conta existir.",
         "Uso: quais capítulos foram abertos (para o contador de leituras) e dados técnicos básicos do aparelho e do navegador."
     ] },
     { t: "3. Para que usamos os dados", p: [
@@ -1416,6 +1673,44 @@ function montarDeclaracao() {
     });
 }
 
+function desenharPreviaPublicacao(h) {
+    var capa = pegar("pubPreviewCapa");
+    var titulo = pegar("pubPreviewTitulo");
+    var sinopse = pegar("pubPreviewSinopse");
+    var meta = pegar("pubPreviewMeta");
+    var generos = pegar("pubPreviewGeneros");
+    if (!capa || !titulo || !sinopse || !meta || !generos) return;
+
+    if (!h) {
+        capa.style.display = "none";
+        titulo.textContent = "Sua história";
+        sinopse.textContent = "A sinopse aparecerá aqui.";
+        meta.textContent = "";
+        generos.textContent = "";
+        return;
+    }
+
+    titulo.textContent = h.titulo || "Sem título";
+    sinopse.textContent = h.sinopse || "Nenhuma sinopse informada.";
+    var classificacao = h.idade === "livre" ? "Livre" : (h.idade ? h.idade + " anos" : "Não definida");
+    var status = h.status === "completa" ? "Completa" : (h.status === "andamento" ? "Em andamento" : "Status não definido");
+    meta.textContent = classificacao + " · " + status + " · " + meusCapitulos.length + (meusCapitulos.length === 1 ? " capítulo" : " capítulos");
+    var nomesGeneros = (h.generos || []).map(function (id) {
+        var genero = GENEROS.find(function (g) { return g.id === id; });
+        return genero ? genero.nome : id;
+    });
+    generos.textContent = nomesGeneros.length ? "Gêneros: " + nomesGeneros.join(", ") : "Gêneros não selecionados.";
+
+    var url = imagemSegura(h.capa);
+    if (url) {
+        capa.src = url;
+        capa.style.display = "block";
+    } else {
+        capa.removeAttribute("src");
+        capa.style.display = "none";
+    }
+}
+
 function prepararPublicar() {
     var h = minhaHistoria;
     var caixas = document.querySelectorAll('input[name="decl"]');
@@ -1425,11 +1720,13 @@ function prepararPublicar() {
         pegar("pubTitulo").textContent = "Sem história";
         pegar("pubResumo").textContent = "";
         pegar("btnDespublicar").style.display = "none";
+        desenharPreviaPublicacao(null);
         aviso("avisoPub", usuarioLogado ? "Crie a sua história antes de publicar." : "Entre na sua conta para publicar.", true);
         return;
     }
 
     pegar("pubTitulo").textContent = h.titulo || "Sem título";
+    desenharPreviaPublicacao(h);
 
     var classificacao = "não escolhida";
     if (h.idade === "livre") classificacao = "Livre";
@@ -1714,8 +2011,15 @@ async function apagarComentario(id, titulo, comentarioId) {
     desenharComentarios(id, titulo, tokenRota);
 }
 
-function abrirDenuncia(tipo, historiaId, comentarioId, titulo) {
-    alvoDenuncia = { tipo: tipo, historiaId: historiaId, comentarioId: comentarioId, titulo: titulo || "" };
+function abrirDenuncia(tipo, historiaId, comentarioId, titulo, capituloId, capituloTitulo) {
+    alvoDenuncia = {
+        tipo: tipo,
+        historiaId: historiaId,
+        comentarioId: comentarioId,
+        titulo: titulo || "",
+        capituloId: capituloId || null,
+        capituloTitulo: capituloTitulo || ""
+    };
     location.hash = "denunciar";
 }
 
@@ -1742,7 +2046,9 @@ function prepararDenuncia() {
     var nome = alvoDenuncia.titulo;
     pegar("denAlvo").textContent = (alvoDenuncia.tipo === "comentario")
         ? "Você está denunciando um comentário na história “" + nome + "”."
-        : "Você está denunciando a história “" + nome + "”.";
+        : (alvoDenuncia.tipo === "capitulo"
+            ? "Você está denunciando o capítulo “" + (alvoDenuncia.capituloTitulo || "Sem título") + "”, da história “" + nome + "”."
+            : "Você está denunciando a história “" + nome + "”.");
 
     var opcoes = document.querySelectorAll('input[name="motivo"]');
     for (var i = 0; i < opcoes.length; i++) opcoes[i].checked = false;
@@ -1767,12 +2073,18 @@ async function enviarDenuncia() {
         return;
     }
 
+    var detalhesDenuncia = pegar("denDetalhes").value.trim();
+    if (alvoDenuncia.tipo === "capitulo") {
+        var contextoCapitulo = "[Capítulo: " + (alvoDenuncia.capituloTitulo || "Sem título") + "]";
+        detalhesDenuncia = contextoCapitulo + (detalhesDenuncia ? " " + detalhesDenuncia : "");
+    }
+
     var r = await db.from("denuncias").insert({
         usuario_id: usuarioLogado.id,
         historia_id: alvoDenuncia.historiaId,
         comentario_id: alvoDenuncia.comentarioId,
         motivo: motivo,
-        detalhes: pegar("denDetalhes").value.trim()
+        detalhes: detalhesDenuncia
     });
 
     if (r.error) {
@@ -1872,6 +2184,13 @@ async function prepararLeitor(token) {
         fim.addEventListener("click", voltarDaLeitura);
         nav.appendChild(fim);
     }
+
+    var denunciarCapitulo = criar("button", "btn claro mini", "Denunciar capítulo");
+    denunciarCapitulo.type = "button";
+    denunciarCapitulo.addEventListener("click", function () {
+        abrirDenuncia("capitulo", h.id, null, h.titulo, c.id, c.titulo || ("Capítulo " + n));
+    });
+    nav.appendChild(denunciarCapitulo);
 
     var chave = h.id + "-" + c.id;
     if (!contadas[chave]) {
@@ -2352,6 +2671,7 @@ db.auth.onAuthStateChange(function (evento, sessao) {
         await carregarPerfilDaConta();
         await carregarMinhaHistoria();
         await verificarAdmin();
+        await atualizarContadorNotificacoes();
         ultimaCargaHist = 0;
         rota();
     }, 0);
@@ -2504,7 +2824,7 @@ async function prepararGestao(token) {
 function desenharAbasGestao() {
     var area = pegar("abasGestao");
     area.innerHTML = "";
-    [["resumo", "Resumo"], ["denuncias", "Denúncias"], ["usuarios", "Usuários"]].forEach(function (a) {
+    [["resumo", "Resumo"], ["denuncias", "Denúncias"], ["usuarios", "Usuários"], ["historias", "Histórias"], ["anuncios", "Concursos / avisos"]].forEach(function (a) {
         var chip = criar("button", "chip" + (a[0] === abaGestao ? " ativo" : ""), a[1]);
         chip.type = "button";
         chip.addEventListener("click", function () { abrirAbaGestao(a[0]); });
@@ -2521,6 +2841,8 @@ async function abrirAbaGestao(aba) {
     if (aba === "resumo") await gestaoResumo();
     if (aba === "denuncias") await gestaoDenuncias();
     if (aba === "usuarios") await gestaoUsuarios("");
+    if (aba === "historias") await gestaoHistorias("");
+    if (aba === "anuncios") gestaoAnuncios();
 }
 
 function linhaInfo(rotulo, valor) {
@@ -2564,7 +2886,8 @@ async function gestaoDenuncias() {
     lista.forEach(function (d) {
         var bloco = criar("div", "bloco");
         var ehComentario = !!d.comentario_id;
-        var topo = criar("strong", "", (ehComentario ? "Comentário em: " : "História: ") + (d.historia_titulo || "(removida)"));
+        var contextoCapitulo = !ehComentario && /^\[Capítulo:/i.test(d.detalhes || "");
+        var topo = criar("strong", "", (ehComentario ? "Comentário em: " : (contextoCapitulo ? "Denúncia de capítulo em: " : "História: ")) + (d.historia_titulo || "(removida)"));
         bloco.appendChild(topo);
         bloco.appendChild(criar("span", "selo" + (d.resolvida ? " ok" : ""), d.resolvida ? "Resolvida" : "Aberta"));
         bloco.appendChild(linhaInfo("Motivo", d.motivo));
@@ -2594,10 +2917,16 @@ async function gestaoDenuncias() {
             }));
         }
         if (!ehComentario && d.historia_id) {
-            botoes.appendChild(botaoGestao("Despublicar história", "perigo", async function () {
+            botoes.appendChild(botaoGestao(contextoCapitulo ? "Despublicar história relacionada" : "Despublicar história", "perigo", async function () {
                 if (!confirm("Tirar esta história do ar?")) return;
                 await chamarAdmin("admin_despublicar_historia", { p_id: String(d.historia_id) });
                 if (!adminErro) aviso("avisoGestao", "História despublicada.", false);
+            }));
+            botoes.appendChild(botaoGestao("Excluir história definitivamente", "perigo", async function () {
+                var confirmacao = prompt("Esta ação apaga a história e seus capítulos. Digite EXCLUIR para confirmar:");
+                if (confirmacao !== "EXCLUIR") return;
+                await chamarAdmin("admin_excluir_historia", { p_id: Number(d.historia_id) });
+                if (!adminErro) { aviso("avisoGestao", "História e capítulos excluídos.", false); await gestaoDenuncias(); }
             }));
         }
         var alvoBan = ehComentario ? d.comentario_autor_id : d.autor_id;
@@ -2766,3 +3095,237 @@ async function instalarApp() {
         if (evento.target === modal) fecharAviso();
     });
 })();
+
+
+/* =====================================================
+   COMUNIDADE: SEGUIDORES, NOTIFICAÇÕES, MENSAGENS E ADMIN
+   Requer executar supabase/portal-novel-comunidade.sql no SQL Editor.
+===================================================== */
+function avisoComunidade(area, texto, erro) {
+    if (!area) return;
+    area.textContent = texto || "";
+    area.className = erro ? "aviso erro" : "aviso";
+}
+
+async function carregarListaSeguidores() {
+    var area = pegar("listaMeusSeguidores");
+    if (!area) return;
+    area.innerHTML = "";
+    if (!usuarioLogado) { area.appendChild(criar("p", "vazio", "Entre na sua conta para ver seus seguidores.")); return; }
+    area.appendChild(criar("p", "vazio", "Carregando seguidores..."));
+    var r = await db.from("seguidores").select("seguidor_id").eq("autor_id", usuarioLogado.id);
+    area.innerHTML = "";
+    if (r.error) { area.appendChild(criar("p", "vazio", "Não foi possível carregar seguidores. Confira as políticas RLS e a migração do banco.")); return; }
+    var ids = (r.data || []).map(function (x) { return x.seguidor_id; });
+    if (!ids.length) { area.appendChild(criar("p", "vazio", "Você ainda não tem seguidores.")); return; }
+    var perfis = await db.from("perfis").select("id,nome,usuario,foto,sobre").in("id", ids);
+    if (perfis.error) { area.appendChild(criar("p", "vazio", "Não foi possível carregar os perfis.")); return; }
+    var mapa = {};
+    (perfis.data || []).forEach(function (x) { mapa[x.id] = x; });
+    ids.forEach(function (id) {
+        var u = mapa[id]; if (!u) return;
+        var bloco = criar("div", "bloco follower-row");
+        var avatar = criar("div", "follower-avatar", "👤");
+        if (u.foto) { avatar.style.backgroundImage = "url('" + String(u.foto).replace(/'/g, "%27") + "')"; avatar.textContent = ""; }
+        bloco.appendChild(avatar);
+        var info = criar("div", "follower-info");
+        info.appendChild(criar("strong", "", u.nome || u.usuario || "Leitor"));
+        info.appendChild(criar("p", "ajuda", u.usuario ? "@" + u.usuario : "Membro do Portal Novel"));
+        bloco.appendChild(info);
+        var a = criar("a", "btn claro mini", "Ver perfil"); a.href = "#autor-" + u.id; bloco.appendChild(a);
+        var m = criar("button", "btn mini", "Mensagem"); m.type = "button"; m.addEventListener("click", function () { location.hash = "conversa-" + u.id; }); bloco.appendChild(m);
+        area.appendChild(bloco);
+    });
+}
+
+async function atualizarContadorNotificacoes() {
+    var badge = pegar("contadorNotificacoes");
+    if (!badge) return;
+    if (!usuarioLogado) { badge.style.display = "none"; return; }
+    var r = await db.from("notificacoes").select("id", { count: "exact", head: true }).eq("user_id", usuarioLogado.id).is("read_at", null);
+    if (r.error) { badge.style.display = "none"; return; }
+    var n = Number(r.count || 0);
+    badge.textContent = n > 99 ? "99+" : String(n);
+    badge.style.display = n ? "inline-flex" : "none";
+}
+
+async function carregarAvisos() {
+    var area = pegar("listaAvisos");
+    if (!area) return;
+    area.innerHTML = "";
+    if (!usuarioLogado) { area.appendChild(criar("p", "vazio", "Entre na sua conta para receber notificações.")); return; }
+    area.appendChild(criar("p", "vazio", "Carregando notificações..."));
+    var r = await db.from("notificacoes").select("id,actor_id,tipo,titulo,mensagem,dados,created_at,read_at").eq("user_id", usuarioLogado.id).order("created_at", { ascending: false }).limit(100);
+    area.innerHTML = "";
+    if (r.error) { area.appendChild(criar("p", "vazio", "Não foi possível carregar notificações. Execute a migração SQL no Supabase.")); return; }
+    if (!r.data || !r.data.length) { area.appendChild(criar("p", "vazio", "Nenhuma notificação por enquanto.")); await atualizarContadorNotificacoes(); return; }
+    r.data.forEach(function (n) {
+        var item = criar("article", "bloco notification-item" + (n.read_at ? " lida" : " nao-lida"));
+        item.appendChild(criar("strong", "", n.titulo || "Notificação"));
+        var textoAviso = n.mensagem || "";
+        if (n.dados && n.dados.prazo) textoAviso += "\nPrazo: " + dataBonita(n.dados.prazo);
+        item.appendChild(criar("p", "", textoAviso));
+        item.appendChild(criar("small", "ajuda", n.created_at ? dataBonita(n.created_at) : ""));
+        if (!n.read_at) {
+            var lido = criar("button", "btn claro mini", "Marcar como lida"); lido.type = "button";
+            lido.addEventListener("click", async function () {
+                var up = await db.from("notificacoes").update({ read_at: new Date().toISOString() }).eq("id", n.id).eq("user_id", usuarioLogado.id);
+                if (!up.error) { item.classList.remove("nao-lida"); item.classList.add("lida"); lido.remove(); await atualizarContadorNotificacoes(); }
+            });
+            item.appendChild(lido);
+        }
+        var dados = n.dados || {};
+        if (dados.url) { var link = criar("a", "btn claro mini", "Abrir"); link.href = dados.url; item.appendChild(link); }
+        area.appendChild(item);
+    });
+    await atualizarContadorNotificacoes();
+}
+
+async function marcarTodasNotificacoesLidas() {
+    if (!usuarioLogado) return;
+    var r = await db.from("notificacoes").update({ read_at: new Date().toISOString() }).eq("user_id", usuarioLogado.id).is("read_at", null);
+    if (r.error) { alert("Não foi possível atualizar as notificações."); return; }
+    await carregarAvisos();
+}
+
+async function buscarPessoasParaMensagem() {
+    var area = pegar("resultadoPessoasMensagem");
+    var termo = (pegar("buscarDestinatario").value || "").trim();
+    area.innerHTML = "";
+    if (!usuarioLogado) { area.appendChild(criar("p", "aviso erro", "Entre para enviar mensagens.")); return; }
+    if (termo.length < 2) { area.appendChild(criar("p", "aviso", "Digite pelo menos 2 caracteres.")); return; }
+    var limpo = termo.replace(/^@/, "").replace(/[%_]/g, "");
+    var consulta = db.from("perfis").select("id,nome,usuario,foto");
+    var r = termo.charAt(0) === "@" ? await consulta.ilike("usuario", "%" + limpo + "%").limit(15) : await consulta.ilike("nome", "%" + limpo + "%").limit(15);
+    if (r.error) { area.appendChild(criar("p", "aviso erro", "Não foi possível buscar usuários.")); return; }
+    var lista = (r.data || []).filter(function (u) { return u.id !== usuarioLogado.id; });
+    if (!lista.length) { area.appendChild(criar("p", "vazio", "Nenhum usuário encontrado pelo nome.")); return; }
+    lista.forEach(function (u) {
+        var linha = criar("div", "follower-row");
+        var nome = criar("strong", "", u.nome || u.usuario || "Usuário"); linha.appendChild(nome);
+        var btn = criar("button", "btn mini", "Enviar mensagem"); btn.type = "button"; btn.addEventListener("click", function () { location.hash = "conversa-" + u.id; });
+        linha.appendChild(btn); area.appendChild(linha);
+    });
+}
+
+async function carregarConversas() {
+    var area = pegar("listaConversas"); if (!area) return;
+    area.innerHTML = "";
+    if (!usuarioLogado) { area.appendChild(criar("p", "vazio", "Entre na sua conta para ver suas conversas.")); return; }
+    area.appendChild(criar("p", "vazio", "Carregando conversas..."));
+    var uid = usuarioLogado.id;
+    var r = await db.from("mensagens_privadas").select("id,remetente_id,destinatario_id,texto,criado_em,lida_em").or("remetente_id.eq." + uid + ",destinatario_id.eq." + uid).order("criado_em", { ascending: false }).limit(200);
+    area.innerHTML = "";
+    if (r.error) { area.appendChild(criar("p", "vazio", "Não foi possível carregar mensagens. Confira a migração e as políticas RLS.")); return; }
+    var ultimas = {};
+    (r.data || []).forEach(function (m) { var outro = m.remetente_id === uid ? m.destinatario_id : m.remetente_id; if (!ultimas[outro]) ultimas[outro] = m; });
+    var ids = Object.keys(ultimas);
+    if (!ids.length) { area.appendChild(criar("p", "vazio", "Você ainda não tem conversas. Busque um usuário acima para começar.")); return; }
+    var ps = await db.from("perfis").select("id,nome,usuario,foto").in("id", ids);
+    var mapa = {}; (ps.data || []).forEach(function (p) { mapa[p.id] = p; });
+    ids.forEach(function (id) {
+        var p = mapa[id] || {}; var m = ultimas[id];
+        var item = criar("button", "bloco conversation-row", ""); item.type = "button";
+        var nome = p.nome || p.usuario || "Usuário";
+        item.appendChild(criar("strong", "", nome));
+        item.appendChild(criar("p", "ajuda", (m.remetente_id === uid ? "Você: " : "") + (m.texto || "").slice(0, 100)));
+        item.appendChild(criar("small", "ajuda", dataBonita(m.criado_em)));
+        item.addEventListener("click", function () { location.hash = "conversa-" + id; });
+        area.appendChild(item);
+    });
+}
+
+var destinatarioConversa = null;
+async function mostrarConversa(id, token) {
+    var area = pegar("historicoConversa"); if (!area) return;
+    area.innerHTML = ""; destinatarioConversa = id;
+    if (!usuarioLogado) { area.appendChild(criar("p", "vazio", "Entre para conversar.")); return; }
+    if (!id || id === usuarioLogado.id) { area.appendChild(criar("p", "vazio", "Conversa inválida.")); return; }
+    var p = await db.from("perfis").select("nome,usuario").eq("id", id).maybeSingle();
+    if (token !== tokenRota) return;
+    pegar("tituloConversa").textContent = "Conversa com " + (p.data ? (p.data.nome || p.data.usuario) : "usuário");
+    var uid = usuarioLogado.id;
+    var r = await db.from("mensagens_privadas").select("id,remetente_id,destinatario_id,texto,criado_em,lida_em").or("remetente_id.eq." + uid + ",destinatario_id.eq." + uid).order("criado_em", { ascending: true }).limit(500);
+    if (token !== tokenRota) return;
+    if (r.error) { area.appendChild(criar("p", "vazio", "Não foi possível carregar esta conversa.")); return; }
+    var msgs = (r.data || []).filter(function (m) { return (m.remetente_id === uid && m.destinatario_id === id) || (m.remetente_id === id && m.destinatario_id === uid); });
+    if (!msgs.length) area.appendChild(criar("p", "vazio", "Esta conversa começou agora. Envie a primeira mensagem."));
+    msgs.forEach(function (m) {
+        var bolha = criar("div", "message-bubble" + (m.remetente_id === uid ? " minha" : " recebida"));
+        bolha.appendChild(criar("p", "", m.texto));
+        bolha.appendChild(criar("small", "", dataBonita(m.criado_em)));
+        area.appendChild(bolha);
+    });
+    await db.from("mensagens_privadas").update({ lida_em: new Date().toISOString() }).eq("remetente_id", id).eq("destinatario_id", uid).is("lida_em", null);
+    area.scrollTop = area.scrollHeight;
+}
+
+async function enviarMensagemPrivada() {
+    if (!usuarioLogado || !destinatarioConversa) { alert("Entre na sua conta para enviar mensagens."); return; }
+    var campo = pegar("textoMensagem"); var texto = (campo.value || "").trim();
+    if (!texto) return;
+    var b = document.querySelector(".message-compose button"); if (b) b.disabled = true;
+    var r = await db.from("mensagens_privadas").insert({ remetente_id: usuarioLogado.id, destinatario_id: destinatarioConversa, texto: texto });
+    if (b) b.disabled = false;
+    if (r.error) {
+        var codErro = r.error.code || "", txtErro = r.error.message || "";
+        if (/Muitas mensagens/i.test(txtErro)) alert("Muitas mensagens em pouco tempo. Aguarde um minuto.");
+        else if (codErro === "42501" || /row-level security/i.test(txtErro)) alert("Você só pode escrever para quem segue você ou responder a quem já escreveu para você.");
+        else alert("Não foi possível enviar. Confira a conexão e tente de novo.");
+        return;
+    }
+    campo.value = "";
+    await mostrarConversa(destinatarioConversa, tokenRota);
+}
+
+async function gestaoHistorias(busca) {
+    var lista = await chamarAdmin("admin_listar_historias", { p_busca: busca || "" });
+    var area = pegar("gestaoConteudo"); area.innerHTML = "";
+    var box = criar("div", "bloco"); var input = document.createElement("input"); input.placeholder = "Buscar história pelo título"; input.value = busca || ""; box.appendChild(input);
+    var bt = botaoGestao("Buscar", "", function () { gestaoHistorias(input.value.trim()); }); box.appendChild(bt); area.appendChild(box);
+    if (!lista) return;
+    if (!lista.length) { area.appendChild(criar("p", "vazio", "Nenhuma história encontrada.")); return; }
+    lista.forEach(function (h) {
+        var item = criar("div", "bloco"); item.appendChild(criar("strong", "", h.titulo || "Sem título"));
+        item.appendChild(linhaInfo("Autor", h.autor_nome || h.autor_id)); item.appendChild(linhaInfo("Status", h.publicada ? "Publicada" : "Rascunho / despublicada"));
+        item.appendChild(linhaInfo("Criada em", dataBonita(h.criado_em)));
+        var actions = criar("div", "botoes");
+        if (h.publicada) actions.appendChild(botaoGestao("Despublicar", "claro", async function () { await chamarAdmin("admin_despublicar_historia", { p_id: String(h.id) }); if (!adminErro) gestaoHistorias(busca); }));
+        actions.appendChild(botaoGestao("Excluir definitivamente", "perigo", async function () {
+            var c = prompt("Excluir '" + h.titulo + "' e todos os seus capítulos? Digite EXCLUIR:"); if (c !== "EXCLUIR") return;
+            await chamarAdmin("admin_excluir_historia", { p_id: Number(h.id) }); if (!adminErro) { aviso("avisoGestao", "História excluída.", false); gestaoHistorias(busca); }
+        }));
+        item.appendChild(actions); area.appendChild(item);
+    });
+}
+
+function gestaoAnuncios() {
+    var area = pegar("gestaoConteudo"); area.innerHTML = "";
+    var box = criar("div", "bloco"); box.appendChild(criar("h3", "", "Publicar concurso, premiação ou comunicado"));
+    var l1 = criar("label", "rot", "Título do anúncio"); box.appendChild(l1);
+    var titulo = document.createElement("input"); titulo.id = "tituloAnuncio"; titulo.maxLength = 120; titulo.placeholder = "Ex.: Concurso de fantasia 2026"; box.appendChild(titulo);
+    box.appendChild(criar("label", "rot", "Descrição e regras"));
+    var msg = document.createElement("textarea"); msg.id = "mensagemAnuncio"; msg.rows = 6; msg.maxLength = 5000; msg.placeholder = "Explique como participar, prazos e premiações..."; box.appendChild(msg);
+    box.appendChild(criar("label", "rot", "Prazo (opcional)"));
+    var prazo = document.createElement("input"); prazo.id = "prazoAnuncio"; prazo.type = "date"; box.appendChild(prazo);
+    box.appendChild(criar("p", "ajuda", "O anúncio será enviado como notificação para todas as contas do Portal Novel."));
+    var bt = botaoGestao("Enviar para todos os usuários", "", async function () {
+        var t = titulo.value.trim(), m = msg.value.trim();
+        if (!t || !m) { alert("Preencha o título e a descrição."); return; }
+        if (!confirm("Enviar este anúncio para todos os usuários?")) return;
+        await chamarAdmin("admin_publicar_anuncio", { p_titulo: t, p_mensagem: m, p_prazo: prazo.value || null });
+        if (!adminErro) { aviso("avisoGestao", "Anúncio enviado para todos os usuários.", false); titulo.value = ""; msg.value = ""; prazo.value = ""; }
+    });
+    bt.style.width = "100%"; box.appendChild(bt); area.appendChild(box);
+}
+
+
+// Atualização periódica de notificações e conversas enquanto a página está aberta.
+setInterval(function () {
+    if (!usuarioLogado || document.hidden) return;
+    atualizarContadorNotificacoes();
+    var telaAtual = (location.hash || "#inicio").replace("#", "");
+    if (telaAtual === "avisos") carregarAvisos();
+    if (telaAtual === "mensagens") carregarConversas();
+    if (telaAtual.indexOf("conversa-") === 0) mostrarConversa(telaAtual.substring(9), tokenRota);
+}, 20000);
