@@ -1,0 +1,44 @@
+name: Gerar App Play Store
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configurar Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Configurar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Instalar Bubblewrap
+        run: npm install -g @bubblewrap/cli
+
+      - name: Configurar Caminhos do Bubblewrap
+        run: |
+          mkdir -p ~/.bubblewrap
+          echo "{\"jdkPath\":\"$JAVA_HOME\",\"androidSdkPath\":\"$ANDROID_HOME\"}" > ~/.bubblewrap/config.json
+
+      - name: Gerar App Android
+        run: |
+          mkdir app && cd app
+          yes "" | bubblewrap init --manifest="https://portalnovel.com.br" --directory=.
+          yes "" | bubblewrap build --skipPwaValidation
+          bubblewrap fingerprint generateAssetLinks --manifest="https://portalnovel.com.br"
+
+      - name: Salvar Arquivos
+        uses: actions/upload-artifact@v4
+        with:
+          name: portal-novel-playstore
+          path: |
+            app/app-release-bundle.aab
+            app/app-release-signed.apk
+            app/android.keystore
+            app/assetlinks.json
+            
