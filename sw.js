@@ -2,7 +2,7 @@
    Estratégia: a página (HTML) vem SEMPRE da internet primeiro, para que cada atualização
    que você subir apareça na hora. O cache só é usado quando o aparelho está sem internet.
    Os pedidos para outros sites (Supabase, bibliotecas) NÃO passam por aqui. */
-var CACHE = "portal-novel-v2";
+var CACHE = "portal-novel-v3";
 var ARQUIVOS = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", function (e) {
