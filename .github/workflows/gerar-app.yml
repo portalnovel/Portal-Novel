@@ -1,0 +1,52 @@
+name: Gerar App Play Store
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar Arquivos do Repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Configurar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Instalar Bubblewrap
+        run: npm install -g @bubblewrap/cli
+
+      - name: Configurar Caminhos do Bubblewrap
+        run: |
+          mkdir -p ~/.bubblewrap
+          echo "{\"jdkPath\":\"$JAVA_HOME\",\"androidSdkPath\":\"$ANDROID_HOME\"}" > ~/.bubblewrap/config.json
+
+      - name: Gerar App Android
+        run: |
+          mkdir app && cd app
+          MANIFEST_URL="https://github.io"
+          if curl -s -f "https://portalnovel.com.br" | grep -q "Portal Novel"; then
+            MANIFEST_URL="https://portalnovel.com.br"
+          fi
+          echo "Usando manifesto: $MANIFEST_URL"
+          yes "" | bubblewrap init --manifest="$MANIFEST_URL" --directory=.
+          yes "" | bubblewrap build --skipPwaValidation
+          bubblewrap fingerprint generateAssetLinks --manifest="$MANIFEST_URL"
+
+      - name: Salvar Arquivos
+        uses: actions/upload-artifact@v4
+        with:
+          name: portal-novel-playstore
+          path: |
+            app/app-release-bundle.aab
+            app/app-release-signed.apk
+            app/android.keystore
+            app/assetlinks.json
+            
