@@ -1,0 +1,130 @@
+name: Gerar App Play Store
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar Arquivos do Repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Montar Projeto Android e Compilar AAB
+        run: |
+          mkdir -p app/src/main/java/br/com/portalnovel/app app/src/main/res/drawable app/src/main/res/values
+          
+          # Copia o icone real do repositorio (ou gera um caso nao ache)
+          ICON_FILE=$(find . -maxdepth 4 -iname "*512*.png" -o -iname "*icon*.png" | head -n 1)
+          if [ -n "$ICON_FILE" ]; then
+            cp "$ICON_FILE" app/src/main/res/drawable/ic_launcher.png
+          else
+            python3 -c "import zlib, struct; w,h=512,512; raw=b''.join(b'\x00'+b'\x11\x11\x11\xff'*w for _ in range(h)); chk=lambda t,d: struct.pack('>I',len(d))+t+d+struct.pack('>I',zlib.crc32(t+d)&0xffffffff); open('app/src/main/res/drawable/ic_launcher.png','wb').write(b'\x89PNG\r\n\x1a\n'+chk(b'IHDR',struct.pack('>IIBBBBB',w,h,8,6,0,0,0))+chk(b'IDAT',zlib.compress(raw))+chk(b'IEND',b''))"
+          fi
+
+          # Chave de assinatura
+          keytool -genkeypair -v -keystore android.keystore -alias android -keyalg RSA -keysize 2048 -validity 10000 -storepass portalnovel -keypass portalnovel -dname "CN=Portal Novel, OU=Dev, O=Portal Novel, L=Sao Paulo, S=SP, C=BR"
+
+          # AndroidManifest.xml (TWA Oficial Google)
+          cat << 'EOF' > app/src/main/AndroidManifest.xml
+          <manifest xmlns:android="http://android.com">
+              <uses-permission android:name="android.permission.INTERNET" />
+              <application
+                  android:label="Portal Novel"
+                  android:icon="@drawable/ic_launcher"
+                  android:theme="@android:style/Theme.Translucent.NoTitleBar">
+                  <meta-data android:name="asset_statements" android:resource="@string/asset_statements" />
+                  <activity
+                      android:name="com.google.androidbrowserhelper.trusted.LauncherActivity"
+                      android:exported="true">
+                      <meta-data android:name="android.support.customtabs.trusted.DEFAULT_URL" android:value="https://portalnovel.com.br" />
+                      <meta-data android:name="android.support.customtabs.trusted.STATUS_BAR_COLOR" android:value="#111111" />
+                      <meta-data android:name="android.support.customtabs.trusted.NAVIGATION_BAR_COLOR" android:value="#111111" />
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                      <intent-filter android:autoVerify="true">
+                          <action android:name="android.intent.action.VIEW" />
+                          <category android:name="android.intent.category.DEFAULT" />
+                          <category android:name="android.intent.category.BROWSABLE" />
+                          <data android:scheme="https" android:host="portalnovel.com.br" />
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
+
+          # strings.xml
+          cat << 'EOF' > app/src/main/res/values/strings.xml
+          <resources>
+              <string name="app_name">Portal Novel</string>
+              <string name="asset_statements">[{"relation": ["delegate_permission/common.handle_all_urls"], "target": {"namespace": "android_app", "package_name": "br.com.portalnovel.app", "sha256_cert_fingerprints": []}}]</string>
+          </resources>
+          EOF
+
+          # settings.gradle e build.gradle
+          echo 'include ":app"' > settings.gradle
+          cat << 'EOF' > build.gradle
+          buildscript {
+              repositories { google(); mavenCentral() }
+              dependencies { classpath 'com.android.tools.build:gradle:8.2.2' }
+          }
+          allprojects { repositories { google(); mavenCentral() } }
+          EOF
+
+          cat << 'EOF' > app/build.gradle
+          apply plugin: 'com.android.application'
+          android {
+              namespace 'br.com.portalnovel.app'
+              compileSdk 34
+              defaultConfig {
+                  applicationId "br.com.portalnovel.app"
+                  minSdk 21
+                  targetSdk 34
+                  versionCode 1
+                  versionName "1.0"
+              }
+              signingConfigs {
+                  release {
+                      storeFile file("../android.keystore")
+                      storePassword "portalnovel"
+                      keyAlias "android"
+                      keyPassword "portalnovel"
+                  }
+              }
+              buildTypes {
+                  release {
+                      signingConfig signingConfigs.release
+                      minifyEnabled false
+                  }
+              }
+          }
+          dependencies {
+              implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.5.0'
+          }
+          EOF
+
+          # Compila AAB e APK com Gradle
+          gradle wrapper --gradle-version 8.5
+          ./gradlew bundleRelease assembleRelease
+
+          # Gera assetlinks.json
+          SHA256=$(keytool -list -v -keystore android.keystore -alias android -storepass portalnovel | grep "SHA256:" | sed 's/.*SHA256: //')
+          echo "[{\"relation\":[\"delegate_permission/common.handle_all_urls\"],\"target\":{\"namespace\":\"android_app\",\"package_name\":\"br.com.portalnovel.app\",\"sha256_cert_fingerprints\":[\"$SHA256\"]}}]" > assetlinks.json
+
+      - name: Baixar Pacote Final
+        uses: actions/upload-artifact@v4
+        with:
+          name: portal-novel-playstore
+          path: |
+            app/build/outputs/bundle/release/app-release.aab
+            app/build/outputs/apk/release/app-release.apk
+            android.keystore
+            assetlinks.json
+            
