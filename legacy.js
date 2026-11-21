@@ -80,7 +80,8 @@ var FUNDADORES = {};         // id do autor -> número do selo Fundador
 var NOMES = {};              // id do autor -> nome
 var erroListas = "";
 var ultimaCargaHist = 0;
-var minhaHistoria = null;    // a história da conta logada
+var minhaHistoria = null;    // obra atualmente selecionada
+var minhasHistorias = [];     // todas as obras da conta
 var meusCapitulos = [];      // capítulos da minha história (rascunhos e publicados)
 var mapaLeiturasMeu = {};
 var generoSel = { inicio: "", busca: "" };
@@ -699,13 +700,42 @@ async function mostrarAutor(id, token) {
 ===================================================== */
 async function carregarMinhaHistoria() {
     minhaHistoria = null;
+    minhasHistorias = [];
     meusCapitulos = [];
+
     if (!usuarioLogado) return;
-    var r = await db.from("historias").select("*").eq("autor_id", usuarioLogado.id).order("criado_em", { ascending: false }).limit(1);
-    if (r.data && r.data.length) {
-        minhaHistoria = r.data[0];
+
+    var r = await db.from("historias")
+        .select("*")
+        .eq("autor_id", usuarioLogado.id)
+        .order("criado_em", { ascending: false });
+
+    if (r.error) {
+        console.error("Erro ao carregar histórias:", r.error);
+        return;
+    }
+
+    minhasHistorias = r.data || [];
+
+    if (minhasHistorias.length) {
+        minhaHistoria = minhasHistorias[0];
         meusCapitulos = (await listarCapitulos(minhaHistoria.id, false, true)) || [];
     }
+}
+
+async function selecionarHistoria(id) {
+    var obra = minhasHistorias.find(function (h) {
+        return String(h.id) === String(id);
+    });
+
+    if (!obra) return;
+
+    minhaHistoria = obra;
+    meusCapitulos = (await listarCapitulos(obra.id, false, true)) || [];
+
+    atualizarRascunhos();
+
+    if (location.hash === "#capitulos") abrirCapitulos();
 }
 
 function desenharRascunho(idArea) {
@@ -717,37 +747,41 @@ function desenharRascunho(idArea) {
         return;
     }
 
-    var r = minhaHistoria;
-    if (!r || !r.titulo) {
+    if (!minhasHistorias.length) {
         if (idArea !== "escreverRascunho") area.appendChild(criar("p", "vazio", "Você ainda não criou nenhuma história."));
         return;
     }
 
-    var bloco = criar("div", "bloco rascunho");
-    var capa = criar("div", "capa", r.titulo);
-    pintarCapa(capa, { capa: r.capa, cor1: "#FF9966", cor2: "#FF5E62" });
-    bloco.appendChild(capa);
+    minhasHistorias.forEach(function (r) {
+        var bloco = criar("div", "bloco rascunho");
+        var capa = criar("div", "capa", r.titulo);
+        pintarCapa(capa, { capa: r.capa, cor1: "#FF9966", cor2: "#FF5E62" });
+        bloco.appendChild(capa);
 
-    var texto = criar("div");
-    texto.appendChild(criar("strong", "", r.titulo));
-    var estado = criar("p", "vazio", r.publicada ? "Publicada" : "Rascunho");
-    texto.appendChild(estado);
+        var texto = criar("div");
+        texto.appendChild(criar("strong", "", r.titulo));
+        texto.appendChild(criar("p", "vazio", r.publicada ? "Publicada" : "Rascunho"));
 
-    var continuar = criar("a", "btn mini", "Continuar");
-    continuar.href = "#capitulos";
-    var info = criar("a", "btn claro mini", "Informações");
-    info.href = "#nova";
-    info.style.marginLeft = "8px";
+        var selecionar = criar("button", "btn mini", minhaHistoria && String(minhaHistoria.id) === String(r.id) ? "Obra selecionada" : "Selecionar para editar");
+        selecionar.disabled = !!(minhaHistoria && String(minhaHistoria.id) === String(r.id));
+        selecionar.addEventListener("click", function () {
+            selecionarHistoria(r.id);
+        });
+        texto.appendChild(selecionar);
 
-    texto.appendChild(continuar);
-    texto.appendChild(info);
+        var continuar = criar("a", "btn claro mini", "Capítulos");
+        continuar.href = "#capitulos";
+        continuar.style.marginLeft = "8px";
+        texto.appendChild(continuar);
 
-    var ver = criar("a", "btn claro mini", "Ver como leitor");
-    ver.href = "#livro-" + r.id;
-    ver.style.marginTop = "8px";
-    texto.appendChild(ver);
-    bloco.appendChild(texto);
-    area.appendChild(bloco);
+        var ver = criar("a", "btn claro mini", "Ver como leitor");
+        ver.href = "#livro-" + r.id;
+        ver.style.marginTop = "8px";
+        texto.appendChild(ver);
+
+        bloco.appendChild(texto);
+        area.appendChild(bloco);
+    });
 }
 
 function atualizarRascunhos() {
@@ -755,13 +789,10 @@ function atualizarRascunhos() {
     desenharRascunho("escreverRascunho");
     desenharRascunho("perfilRascunho");
 
-    var tem = !!(usuarioLogado && minhaHistoria && minhaHistoria.titulo);
-    pegar("numObras").textContent = tem ? "1" : "0";
-    // Por enquanto o app guarda uma história por conta
-    pegar("blocoNova").style.display = (usuarioLogado && !tem) ? "block" : "none";
+    pegar("numObras").textContent = String(minhasHistorias.length);
+    pegar("blocoNova").style.display = usuarioLogado ? "block" : "none";
     pegar("blocoEscreverLogin").style.display = usuarioLogado ? "none" : "block";
 }
-
 /* =====================================================
    NOVA HISTÓRIA (formulário)
 ===================================================== */
@@ -813,7 +844,7 @@ pegar("capa").addEventListener("change", function () {
 });
 
 function carregarForm() {
-    var d = minhaHistoria || {};
+    var d = criandoNovaHistoria ? {} : (minhaHistoria || {});
     pegar("titulo").value = d.titulo || "";
     pegar("sinopse").value = d.sinopse || "";
     pegar("idade").value = d.idade || "";
@@ -833,6 +864,13 @@ function carregarForm() {
     pegar("avisoForm").textContent = usuarioLogado ? "" : "Entre na sua conta para salvar a história.";
     pegar("avisoForm").className = "aviso" + (usuarioLogado ? "" : " erro");
 }
+
+var criandoNovaHistoria = false;
+
+document.addEventListener("click", function (e) {
+    var link = e.target.closest && e.target.closest('a[href="#nova"]');
+    if (link) criandoNovaHistoria = !!link.closest("#blocoNova");
+});
 
 var salvandoForm = false;
 
@@ -868,7 +906,7 @@ async function salvarForm(continuar) {
     aviso("avisoForm", "Salvando...", false);
 
     var r;
-    if (minhaHistoria) {
+    if (minhaHistoria && !criandoNovaHistoria) {
         r = await db.from("historias").update(dados).eq("id", minhaHistoria.id).select().single();
     } else {
         dados.autor_id = usuarioLogado.id;
@@ -882,7 +920,19 @@ async function salvarForm(continuar) {
         return;
     }
 
+    var foiNova = criandoNovaHistoria;
     minhaHistoria = r.data;
+
+    var indiceObra = minhasHistorias.findIndex(function (h) {
+        return String(h.id) === String(r.data.id);
+    });
+
+    if (indiceObra >= 0) minhasHistorias[indiceObra] = r.data;
+    else minhasHistorias.unshift(r.data);
+
+    if (foiNova) meusCapitulos = [];
+    criandoNovaHistoria = false;
+    atualizarRascunhos();
     if (continuar) location.hash = "capitulos";
     else aviso("avisoForm", "Rascunho salvo na sua conta.", false);
 }
